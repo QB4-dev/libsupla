@@ -4,7 +4,7 @@ CC ?= gcc
 RM = rm -rf 
 
 LIBVERSION ?= $(shell cut -d'"' -f2 include/libsupla/version.h)
-LIB_SOVERSION = 1
+LIB_SOVERSION = $(word 1,$(subst ., ,$(LIBVERSION)))
 
 NOSSL?=0
 
