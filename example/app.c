@@ -93,33 +93,33 @@ static void *io_thread_function(void *data)
 int main(void) {
 	debug_mode = 1;
 	supla_log(LOG_DEBUG,"Debug log enabled");
-    /* Create SUPLA device */
+	/* Create SUPLA device */
 	supla_dev_t *dev = supla_dev_create("Example Device",NULL);
-    if(!dev){
-        supla_log(LOG_ERR,"cannt create SUPLA dev");
-        exit(EXIT_FAILURE);
-    }
-     /* Setup SUPLA device using config parameters */ 
-    if(supla_dev_setup(dev,&supla_config) != 0){
-        supla_log(LOG_ERR,"SUPLA dev setup failed");
-        exit(EXIT_FAILURE);
-    }
-    
-    /* Prepare channels */ 
+	if(!dev){
+		supla_log(LOG_ERR,"cannt create SUPLA dev");
+		exit(EXIT_FAILURE);
+	}
+	/* Setup SUPLA device using config parameters */ 
+	if(supla_dev_setup(dev,&supla_config) != 0){
+		supla_log(LOG_ERR,"SUPLA dev setup failed");
+		exit(EXIT_FAILURE);
+	}
+
+	/* Prepare channels */ 
 	supla_log(LOG_DEBUG,"Channels init");
 	supla_channel_init(&temp_channel);
 	supla_channel_init(&light_channel);
 	supla_channel_init(&relay_channel);
 	supla_log(LOG_DEBUG,"Channels initialized");
-	
-    /* Add channels to device*/ 
-    supla_dev_add_channel(dev,&temp_channel);
+
+	/* Add channels to device*/ 
+	supla_dev_add_channel(dev,&temp_channel);
 	supla_dev_add_channel(dev,&light_channel);
 	supla_dev_add_channel(dev,&relay_channel);
 
-    signal(SIGINT,sig_handler); // Register signal handler
-    pthread_create(&io_thread, NULL,io_thread_function,NULL);
-    /* Infinite loop */
+	signal(SIGINT,sig_handler); // Register signal handler
+	pthread_create(&io_thread, NULL,io_thread_function,NULL);
+	/* Infinite loop */
 	while(!app_quit){
 		supla_dev_iterate(dev);
 		usleep(10000);
