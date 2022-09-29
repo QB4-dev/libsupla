@@ -14,7 +14,8 @@ int supla_delay_ms(const unsigned int ms)
 	vTaskDelay(ms / portTICK_RATE_MS);
 	return 0;
 #elif LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP32
-  return esp_timer_get_time() / 1000;
+	vTaskDelay(ms / portTICK_RATE_MS);
+	return 0;
 #elif LIBSUPLA_ARCH == LIBSUPLA_ARCH_UNIX
 	return usleep(ms * 1000);
 #endif
