@@ -578,7 +578,7 @@ int supla_dev_setup(supla_dev_t *dev,  const struct supla_config *cfg)
 	if(cfg->activity_timeout)
 		dev->supla_config.activity_timeout = cfg->activity_timeout;
 	else
-		dev->supla_config.activity_timeout = 60;
+		dev->supla_config.activity_timeout = 120;
 
 	TsrpcParams srpc_params;
 	srpc_params_init(&srpc_params);
