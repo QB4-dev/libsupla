@@ -44,7 +44,7 @@ void *esp_link_init(const char host[], int port, unsigned char secure)
 
 int esp_link_connect(esp_socket_data_t *ssd)
 {
-	supla_link_close(ssd);
+	esp_link_close(ssd);
 
 	struct in6_addr serveraddr;
 	struct addrinfo hints, *res = NULL;
@@ -118,7 +118,7 @@ void esp_link_close(esp_socket_data_t *ssd)
 void esp_link_free(esp_socket_data_t *ssd)
 {
 	if(ssd){
-		supla_link_close(ssd);
+		esp_link_close(ssd);
 		free(ssd->host);
 		ssd->host = NULL;
 		free(ssd);
