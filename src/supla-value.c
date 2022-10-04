@@ -5,7 +5,7 @@
  */
 
 #include "supla-value.h"
-#include <string.h>
+#include "port/arch.h"
 
 void supla_val_init(supla_value_t *supla_val, char sync_onchange)
 {

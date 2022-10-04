@@ -324,23 +324,24 @@ void supla_channel_sync(void *srpc, supla_channel_t *ch)
 	lck_lock(priv->lck);
 	if(priv->supla_val && !priv->supla_val->sync){
 		supla_log(LOG_DEBUG,"sync channel[%d] val ",priv->number);
-		priv->supla_val->sync =
-				srpc_ds_async_channel_value_changed_c(srpc,priv->number,priv->supla_val->data.value,0,0);
+
+		priv->supla_val->sync = srpc_ds_async_channel_value_changed_c(
+				srpc,priv->number,priv->supla_val->data.value,0,ch->validity_time_sec);
 		//TODO online flag and validity time
 	}
 
 	if(priv->supla_extval && !priv->supla_extval->sync){
 		supla_log(LOG_DEBUG,"sync channel[%d] extval",priv->number);
-		priv->supla_extval->sync =
-				srpc_ds_async_channel_extendedvalue_changed(srpc,priv->number,&priv->supla_extval->extval);
+
+		priv->supla_extval->sync = srpc_ds_async_channel_extendedvalue_changed(
+				srpc,priv->number,&priv->supla_extval->extval);
 	}
 
 	if(priv->action_trigger && !priv->action_trigger->sync){
 		supla_log(LOG_DEBUG,"sync channel[%d] action ch[%d]->%d",
 				priv->number,priv->action_trigger->at.ChannelNumber,priv->action_trigger->at.ActionTrigger);
 
-		priv->action_trigger->sync =
-				srpc_ds_async_action_trigger(srpc,&priv->action_trigger->at);
+		priv->action_trigger->sync = srpc_ds_async_action_trigger(srpc,&priv->action_trigger->at);
 	}
 	lck_unlock(priv->lck);
 }

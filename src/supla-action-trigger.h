@@ -11,10 +11,7 @@
 extern "C" {
 #endif
 
-#include <stddef.h>
-#include <inttypes.h>
-
-#include "supla-common/proto.h"
+#include <libsupla/supla.h>
 
 typedef struct {
 	char sync;

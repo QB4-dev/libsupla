@@ -50,16 +50,6 @@ typedef enum {
 	SUPLA_DEV_STATE_CONFIG
 }supla_dev_state_t;
 
-struct supla_config {
-	char email[SUPLA_EMAIL_MAXSIZE];
-	char auth_key[SUPLA_AUTHKEY_SIZE];
-	char guid[SUPLA_GUID_SIZE];
-	char server[SUPLA_SERVER_NAME_MAXSIZE];
-	char ssl;
-	int port;
-	int activity_timeout;
-};
-
 struct manufacturer_data {
 	const _supla_int16_t manufacturer_id;
 	const _supla_int16_t product_id;

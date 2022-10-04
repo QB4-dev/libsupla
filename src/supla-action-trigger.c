@@ -5,7 +5,7 @@
  */
 
 #include "supla-action-trigger.h"
-#include <string.h>
+#include "port/arch.h"
 
 void supla_action_trigger_init(supla_action_trigger_t *supla_action_trigger)
 {

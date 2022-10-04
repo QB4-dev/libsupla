@@ -125,6 +125,7 @@ struct supla_channel {
 		struct {
 			unsigned _supla_int_t supported_functions;            //SUPLA_CHANNELFNC_*
 			char sync_values_onchange;                            //sync values with server only when changed
+			int validity_time_sec;                                //measurement validity time for offline sensors
 		};
 		struct {
 			unsigned _supla_int_t action_trigger_caps;            //SUPLA_ACTION_CAP_*

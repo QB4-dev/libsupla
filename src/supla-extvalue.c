@@ -5,7 +5,7 @@
  */
 
 #include "supla-extvalue.h"
-#include <string.h>
+#include "port/arch.h"
 
 void supla_extval_init(supla_extended_value_t *supla_extval, char sync_onchange)
 {
