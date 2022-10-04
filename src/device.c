@@ -4,13 +4,10 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
 
 #include <libsupla/device.h>
 
+#include "port/arch.h"
 #include "port/util.h"
 #include "port/net.h"
 
@@ -38,6 +35,7 @@ struct supla_dev {
 	struct timeval init_time;
 	struct timeval reg_time;
 	struct timeval last_call;
+	struct timeval last_resp;
 
 	time_t uptime;
 	time_t connection_uptime;
@@ -61,6 +59,12 @@ static int supla_dev_write(void *buf, int count, void *dcd)
 {
 	supla_dev_t *dev = dcd;
 	return supla_link_write(dev->ssd, buf, count);
+}
+
+void supla_dev_before_async_call(void *_srpc, unsigned int call_type, void *dcd)
+{
+    supla_dev_t *dev = dcd;
+    gettimeofday(&dev->last_call, NULL);
 }
 
 static void supla_dev_set_state(supla_dev_t *dev, supla_dev_state_t new_state)
@@ -363,7 +367,7 @@ static void supla_dev_on_remote_call_received(void *_srpc,
 		break;
 	}
 	srpc_rd_free(&rd);
-	gettimeofday(&dev->last_call,NULL);
+	gettimeofday(&dev->last_resp, NULL);
 }
 
 static int supla_connection_ping(supla_dev_t *dev)
@@ -374,10 +378,12 @@ static int supla_connection_ping(supla_dev_t *dev)
 	if (dev->supla_config.activity_timeout == 0)
 		return SUPLA_RESULT_TRUE;
 
-	if ((now.tv_sec - dev->last_call.tv_sec) >= (dev->supla_config.activity_timeout - 5))
-		return srpc_dcs_async_ping_server(dev->srpc);
+	if ((now.tv_sec - dev->last_call.tv_sec) >= (dev->supla_config.activity_timeout - 5)){
+	    //supla_log(LOG_DEBUG,"ping server");
+		srpc_dcs_async_ping_server(dev->srpc);
+	}
 
-	if ((now.tv_sec - dev->last_call.tv_sec) >= (dev->supla_config.activity_timeout + 10)){
+	if ((now.tv_sec - dev->last_resp.tv_sec) >= (dev->supla_config.activity_timeout + 10)){
 		supla_log(LOG_ERR,"ping timeout");
 		return SUPLA_RESULT_FALSE;
 	}
@@ -585,6 +591,7 @@ int supla_dev_setup(supla_dev_t *dev,  const struct supla_config *cfg)
 
 	srpc_params.data_read = supla_dev_read;
 	srpc_params.data_write = supla_dev_write;
+	srpc_params.before_async_call = &supla_dev_before_async_call;
 	srpc_params.on_remote_call_received = supla_dev_on_remote_call_received;
 	srpc_params.user_params = dev;
 
@@ -700,7 +707,7 @@ int supla_dev_iterate(supla_dev_t *dev)
 			break;
 	}
 
-	if(srpc_iterate(dev->srpc) == SUPLA_RESULT_FALSE) {
+	if(srpc_iterate(dev->srpc) != SUPLA_RESULT_TRUE) {
 		supla_log(LOG_DEBUG, "srpc_iterate failed");
 		supla_dev_set_connection_reset_cause(dev,SUPLA_LASTCONNECTIONRESETCAUSE_SERVER_CONNECTION_LOST);
 		supla_dev_set_state(dev,SUPLA_DEV_STATE_OFFLINE);
