@@ -11,6 +11,8 @@
 
 #include "version.h"
 #include "config.h"
+
+#include "supla-common/proto.h"
 #include "supla-common/cfg.h"
 #include "supla-common/log.h"
 #include "supla-common/lck.h"
