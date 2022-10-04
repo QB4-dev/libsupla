@@ -7,7 +7,7 @@
 #ifndef SRC_PORT_ARCH_H_
 #define SRC_PORT_ARCH_H_
 
-#include <libsupla/config.h>
+#include <libsupla/supla.h>
 
 #include "arch_unix.h"
 #include "arch_esp8266.h"
