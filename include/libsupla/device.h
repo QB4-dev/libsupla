@@ -51,8 +51,8 @@ typedef enum {
 }supla_dev_state_t;
 
 struct manufacturer_data {
-	const _supla_int16_t manufacturer_id;
-	const _supla_int16_t product_id;
+	_supla_int16_t manufacturer_id;
+	_supla_int16_t product_id;
 };
 
 
@@ -179,6 +179,16 @@ int supla_dev_get_channel_count(const supla_dev_t *dev);
 int supla_dev_set_flags(supla_dev_t *dev, int flags);
 
 /**
+ * @brief Get SUPLA device flags
+ *
+ * @param[in] dev SUPLA device instance
+ * @param[out] flags SUPLA device flags from proto.h use defines: SUPLA_DEVICE_FLAG_*
+ * @return SUPLA_RESULT_TRUE on success
+ */
+int supla_dev_get_flags(supla_dev_t *dev, int *flags);
+
+
+/**
  * @brief Set SUPLA device manufacturer data
  *
  * @param[in] dev SUPLA device instance
@@ -186,6 +196,15 @@ int supla_dev_set_flags(supla_dev_t *dev, int flags);
  * @return SUPLA_RESULT_TRUE on success
  */
 int supla_dev_set_manufacturer_data(supla_dev_t *dev, const struct manufacturer_data *mfr_data);
+
+/**
+ * @brief Get SUPLA device manufacturer data
+ *
+ * @param[in] dev SUPLA device instance
+ * @param[out] mfr_data manufacturer data. See struct manufacturer_data for details
+ * @return SUPLA_RESULT_TRUE on success
+ */
+int supla_dev_get_manufacturer_data(supla_dev_t *dev, struct manufacturer_data *mfr_data);
 
 /**
  * @brief Set on device state change callback function

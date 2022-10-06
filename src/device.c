@@ -462,6 +462,14 @@ int supla_dev_set_flags(supla_dev_t *dev, int flags)
 	return SUPLA_RESULT_TRUE;
 }
 
+int supla_dev_get_flags(supla_dev_t *dev, int *flags)
+{
+	if(!dev || !flags)
+		return SUPLA_RESULT_FALSE;
+	*flags = dev->flags;
+	return SUPLA_RESULT_TRUE;
+}
+
 int supla_dev_set_manufacturer_data(supla_dev_t *dev, const struct manufacturer_data *mfr_data)
 {
 	if(!dev)
@@ -469,6 +477,16 @@ int supla_dev_set_manufacturer_data(supla_dev_t *dev, const struct manufacturer_
 
 	dev->manufacturer_id = mfr_data->manufacturer_id;
 	dev->product_id = mfr_data->product_id;
+	return SUPLA_RESULT_TRUE;
+}
+
+int supla_dev_get_manufacturer_data(supla_dev_t *dev, struct manufacturer_data *mfr_data)
+{
+	if(!dev)
+		return SUPLA_RESULT_FALSE;
+
+	mfr_data->manufacturer_id = dev->manufacturer_id;
+	mfr_data->product_id = dev->product_id;
 	return SUPLA_RESULT_TRUE;
 }
 
@@ -698,6 +716,7 @@ int supla_dev_iterate(supla_dev_t *dev)
 
 		case SUPLA_DEV_STATE_REGISTERED:
 			supla_dev_time_sync(dev);
+			//TODO get channel config
 			supla_dev_set_state(dev,SUPLA_DEV_STATE_ONLINE);
 			break;
 
