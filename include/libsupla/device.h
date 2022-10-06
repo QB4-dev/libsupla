@@ -169,7 +169,7 @@ int supla_dev_set_flags(supla_dev_t *dev, int flags);
  * @param[in] mfr_data manufacturer data. See struct manufacturer_data for details
  * @return SUPLA_RESULT_TRUE on success
  */
-int supla_dev_set_manufaturer_data(supla_dev_t *dev, const struct manufacturer_data *mfr_data);
+int supla_dev_set_manufacturer_data(supla_dev_t *dev, const struct manufacturer_data *mfr_data);
 
 /**
  * @brief Set on device state change callback function

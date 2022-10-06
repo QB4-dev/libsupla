@@ -453,7 +453,7 @@ int supla_dev_set_flags(supla_dev_t *dev, int flags)
 	return SUPLA_RESULT_TRUE;
 }
 
-int supla_dev_set_manufaturer_data(supla_dev_t *dev, const struct manufacturer_data *mfr_data)
+int supla_dev_set_manufacturer_data(supla_dev_t *dev, const struct manufacturer_data *mfr_data)
 {
 	if(!dev)
 		return SUPLA_RESULT_FALSE;
