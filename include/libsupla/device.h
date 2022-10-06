@@ -137,6 +137,22 @@ int supla_dev_free(supla_dev_t *dev);
 
 
 /**
+ * @brief Get SUPLA device name
+ *
+ * @param[in] dev SUPLA device instance
+ * @return SUPLA device name
+ */
+const char *supla_dev_get_name(supla_dev_t *dev);
+
+/**
+ * @brief Get SUPLA device software version
+ *
+ * @param[in] dev SUPLA device instance
+ * @return SUPLA device software version
+ */
+const char *supla_dev_get_software_version(supla_dev_t *dev);
+
+/**
  * @brief Get current SUPLA device state
  *
  * @param[in] dev SUPLA device instance

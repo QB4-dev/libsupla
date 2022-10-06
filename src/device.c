@@ -379,7 +379,6 @@ static int supla_connection_ping(supla_dev_t *dev)
 		return SUPLA_RESULT_TRUE;
 
 	if ((now.tv_sec - dev->last_call.tv_sec) >= (dev->supla_config.activity_timeout - 5)){
-	    //supla_log(LOG_DEBUG,"ping server");
 		srpc_dcs_async_ping_server(dev->srpc);
 	}
 
@@ -423,6 +422,16 @@ int supla_dev_free(supla_dev_t *dev)
 	}
 	free(dev);
 	return SUPLA_RESULT_TRUE;
+}
+
+const char *supla_dev_get_name(supla_dev_t *dev)
+{
+	return dev ? dev->name : NULL;
+}
+
+const char *supla_dev_get_software_version(supla_dev_t *dev)
+{
+	return dev ? dev->soft_ver : NULL;
 }
 
 int supla_dev_get_state(supla_dev_t *dev, supla_dev_state_t *state)

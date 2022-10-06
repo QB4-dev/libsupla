@@ -25,6 +25,8 @@ typedef struct {
   esp_socket_t supla_socket;
 } esp_socket_data_t;
 
+
+
 void *esp_link_init(const char host[], int port, unsigned char secure)
 {
 	esp_socket_data_t *ssd = malloc(sizeof(esp_socket_data_t));
@@ -40,6 +42,26 @@ void *esp_link_init(const char host[], int port, unsigned char secure)
 
 	//TODO SSL stuff
 	return ssd;
+}
+
+void esp_link_close(esp_socket_data_t *ssd)
+{
+	esp_socket_t *esp_socket = &ssd->supla_socket;
+
+	if(esp_socket->sfd != -1){
+		close(esp_socket->sfd);
+		esp_socket->sfd = -1;
+	}
+}
+
+void esp_link_free(esp_socket_data_t *ssd)
+{
+	if(ssd){
+		esp_link_close(ssd);
+		free(ssd->host);
+		ssd->host = NULL;
+		free(ssd);
+	}
 }
 
 int esp_link_connect(esp_socket_data_t *ssd)
@@ -103,26 +125,6 @@ int esp_link_write(esp_socket_data_t *ssd, void *buf, int count)
 {
 	esp_socket_t *supla_socket = &ssd->supla_socket;
 	return send(supla_socket->sfd, buf, count, MSG_NOSIGNAL);
-}
-
-void esp_link_close(esp_socket_data_t *ssd)
-{
-	esp_socket_t *esp_socket = &ssd->supla_socket;
-
-	if(esp_socket->sfd != -1){
-		close(esp_socket->sfd);
-		esp_socket->sfd = -1;
-	}
-}
-
-void esp_link_free(esp_socket_data_t *ssd)
-{
-	if(ssd){
-		esp_link_close(ssd);
-		free(ssd->host);
-		ssd->host = NULL;
-		free(ssd);
-	}
 }
 #endif
 
