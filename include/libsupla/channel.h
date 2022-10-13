@@ -100,7 +100,7 @@ typedef int (*supla_channel_get_state_handler_t)(supla_channel_t *ch, TDSC_Chann
  * @brief Function called on channel calcfg request from server
  * Example function:
  * @code{c}
- * static int get_dist_state(supla_channel_t *ch, TSD_DeviceCalCfgRequest *calcfg)
+ * static int get_light_state(supla_channel_t *ch, TSD_DeviceCalCfgRequest *calcfg)
  * {
  * 	if(calcfg->Command == SUPLA_CALCFG_CMD_SET_LIGHTSOURCE_LIFESPAN){
  * 		TCalCfg_LightSourceLifespan *cfg = calcfg->Data;

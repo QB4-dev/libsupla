@@ -225,7 +225,7 @@ int supla_dev_set_state_changed_callback(supla_dev_t *dev, on_change_state_callb
 int supla_dev_set_common_channel_state_callback(supla_dev_t *dev, supla_device_get_state_handler_t callback);
 
 /**
- * @brief Set on receive user localtime from server callback function. User may set RTC
+ * @brief Set on receive user localtime from server callback function
  *
  * @param[in] dev SUPLA device instance
  * @param[in] callback function called on get user localtime response from server
