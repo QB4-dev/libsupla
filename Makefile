@@ -54,8 +54,6 @@ endif
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
 LDFLAGS = 
 
-COREINCFILES_SRC = $(wildcard src/supla-common/*.h)
-
 .PHONY: all shared static clean install uninstall example
 
 all: shared static example
