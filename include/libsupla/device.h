@@ -142,7 +142,7 @@ int supla_dev_free(supla_dev_t *dev);
  * @param[in] dev SUPLA device instance
  * @return SUPLA device name
  */
-const char *supla_dev_get_name(supla_dev_t *dev);
+const char *supla_dev_get_name(const supla_dev_t *dev);
 
 /**
  * @brief Get SUPLA device software version
@@ -150,7 +150,7 @@ const char *supla_dev_get_name(supla_dev_t *dev);
  * @param[in] dev SUPLA device instance
  * @return SUPLA device software version
  */
-const char *supla_dev_get_software_version(supla_dev_t *dev);
+const char *supla_dev_get_software_version(const supla_dev_t *dev);
 
 /**
  * @brief Get current SUPLA device state
@@ -159,15 +159,7 @@ const char *supla_dev_get_software_version(supla_dev_t *dev);
  * @param[out] state SUPLA device state
  * @return SUPLA_RESULT_TRUE on success or SUPLA_RESULT_FALSE if dev or state is NULL
  */
-int supla_dev_get_state(supla_dev_t *dev, supla_dev_state_t *state);
-
-/**
- * @brief Get SUPLA device channels count
- *
- * @param[in] dev SUPLA device instance
- * @return assigned channels count
- */
-int supla_dev_get_channel_count(const supla_dev_t *dev);
+int supla_dev_get_state(const supla_dev_t *dev, supla_dev_state_t *state);
 
 /**
  * @brief Set SUPLA device flags
@@ -185,7 +177,7 @@ int supla_dev_set_flags(supla_dev_t *dev, int flags);
  * @param[out] flags SUPLA device flags from proto.h use defines: SUPLA_DEVICE_FLAG_*
  * @return SUPLA_RESULT_TRUE on success
  */
-int supla_dev_get_flags(supla_dev_t *dev, int *flags);
+int supla_dev_get_flags(const supla_dev_t *dev, int *flags);
 
 
 /**
@@ -204,7 +196,7 @@ int supla_dev_set_manufacturer_data(supla_dev_t *dev, const struct manufacturer_
  * @param[out] mfr_data manufacturer data. See struct manufacturer_data for details
  * @return SUPLA_RESULT_TRUE on success
  */
-int supla_dev_get_manufacturer_data(supla_dev_t *dev, struct manufacturer_data *mfr_data);
+int supla_dev_get_manufacturer_data(const supla_dev_t *dev, struct manufacturer_data *mfr_data);
 
 /**
  * @brief Set on device state change callback function
@@ -245,6 +237,23 @@ int supla_dev_set_server_time_sync_callback(supla_dev_t *dev, on_server_time_syn
 int supla_dev_add_channel(supla_dev_t *dev, supla_channel_t *ch);
 
 /**
+ * @brief Get SUPLA device channels count
+ *
+ * @param[in] dev SUPLA device instance
+ * @return assigned channels count
+ */
+int supla_dev_get_channel_count(const supla_dev_t *dev);
+
+/**
+ * @brief Get SUPLA device channel by assigned number
+ *
+ * @param[in] dev SUPLA device instance
+ * @param[in] num requested channel number
+ * @return SUPLA channel or NULL if channel not available
+ */
+supla_channel_t *supla_dev_get_channel_by_num(const supla_dev_t *dev, int num);
+
+/**
  * @brief Enter config mode
  *
  * @param[in] dev SUPLA device instance
@@ -269,10 +278,8 @@ int supla_dev_exit_config_mode(supla_dev_t *dev);
  */
 int supla_dev_setup(supla_dev_t *dev, const struct supla_config *cfg);
 
-
-
 /**
- * @brief SUPLA device iterate - handle connection with server,
+ * @brief SUPLA device iterate - handle connection with server/sync data,
  * put this function in endless loop
  *
  * @param[in] dev SUPLA device instance

@@ -77,19 +77,6 @@ static void supla_dev_set_state(supla_dev_t *dev, supla_dev_state_t new_state)
 		dev->on_state_change(dev,dev->state);
 }
 
-static supla_channel_t *supla_dev_get_channel_by_num(supla_dev_t *dev, int num)
-{
-	supla_channel_t *ch;
-	struct supla_channel_priv *priv;
-
-	STAILQ_FOREACH(ch,&dev->channels,channels){
-		priv = ch->priv;
-		if(priv->number == num)
-			return ch;
-	}
-	return NULL;
-}
-
 static void supla_dev_set_connection_reset_cause(supla_dev_t *dev, unsigned char cause)
 {
 	dev->connection_reset_cause = cause;
@@ -424,34 +411,23 @@ int supla_dev_free(supla_dev_t *dev)
 	return SUPLA_RESULT_TRUE;
 }
 
-const char *supla_dev_get_name(supla_dev_t *dev)
+const char *supla_dev_get_name(const supla_dev_t *dev)
 {
 	return dev ? dev->name : NULL;
 }
 
-const char *supla_dev_get_software_version(supla_dev_t *dev)
+const char *supla_dev_get_software_version(const supla_dev_t *dev)
 {
 	return dev ? dev->soft_ver : NULL;
 }
 
-int supla_dev_get_state(supla_dev_t *dev, supla_dev_state_t *state)
+int supla_dev_get_state(const supla_dev_t *dev, supla_dev_state_t *state)
 {
 	if(!dev || !state)
 		return SUPLA_RESULT_FALSE;
 
 	*state = dev->state;
 	return SUPLA_RESULT_TRUE;
-}
-
-
-int supla_dev_get_channel_count(const supla_dev_t *dev)
-{
-	supla_channel_t *ch;
-	int n = 0;
-	STAILQ_FOREACH(ch,&dev->channels,channels){
-		n++;
-	}
-	return n;
 }
 
 int supla_dev_set_flags(supla_dev_t *dev, int flags)
@@ -462,7 +438,7 @@ int supla_dev_set_flags(supla_dev_t *dev, int flags)
 	return SUPLA_RESULT_TRUE;
 }
 
-int supla_dev_get_flags(supla_dev_t *dev, int *flags)
+int supla_dev_get_flags(const supla_dev_t *dev, int *flags)
 {
 	if(!dev || !flags)
 		return SUPLA_RESULT_FALSE;
@@ -480,7 +456,7 @@ int supla_dev_set_manufacturer_data(supla_dev_t *dev, const struct manufacturer_
 	return SUPLA_RESULT_TRUE;
 }
 
-int supla_dev_get_manufacturer_data(supla_dev_t *dev, struct manufacturer_data *mfr_data)
+int supla_dev_get_manufacturer_data(const supla_dev_t *dev, struct manufacturer_data *mfr_data)
 {
 	if(!dev)
 		return SUPLA_RESULT_FALSE;
@@ -554,6 +530,29 @@ int supla_dev_add_channel(supla_dev_t *dev, supla_channel_t *ch)
 	STAILQ_INSERT_TAIL(&dev->channels,ch,channels);
 	priv->number = channel_count;
 	return 0;
+}
+
+int supla_dev_get_channel_count(const supla_dev_t *dev)
+{
+	supla_channel_t *ch;
+	int n = 0;
+	STAILQ_FOREACH(ch,&dev->channels,channels){
+		n++;
+	}
+	return n;
+}
+
+supla_channel_t *supla_dev_get_channel_by_num(const supla_dev_t *dev, int num)
+{
+	supla_channel_t *ch;
+	struct supla_channel_priv *priv;
+
+	STAILQ_FOREACH(ch,&dev->channels,channels){
+		priv = ch->priv;
+		if(priv->number == num)
+			return ch;
+	}
+	return NULL;
 }
 
 int supla_dev_enter_config_mode(supla_dev_t *dev)
