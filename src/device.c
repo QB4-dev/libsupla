@@ -696,21 +696,31 @@ int supla_dev_iterate(supla_dev_t *dev)
 	dev->uptime = difftime(sys_time.tv_sec, dev->init_time.tv_sec);
 	switch (dev->state) {
 		case SUPLA_DEV_STATE_OFFLINE:
-			supla_log(LOG_INFO,"Connecting to: %s:%d",dev->supla_config.server,dev->supla_config.port);
+			memset(&dev->reg_time,0,sizeof(dev->reg_time));
+			memset(&dev->last_call,0,sizeof(dev->last_call));
+			memset(&dev->last_resp,0,sizeof(dev->last_resp));
+
+			supla_log(LOG_INFO,"[%s] Connecting to: %s:%d",dev->name,dev->supla_config.server,dev->supla_config.port);
 			if (supla_link_connect(dev->ssd) == 0){
 				supla_delay_ms(5000);
 				return SUPLA_RESULT_FALSE;
 			} else {
-				supla_log(LOG_INFO,"Connected to server");
+				supla_log(LOG_INFO,"[%s] Connected to server",dev->name);
 				supla_dev_set_state(dev,SUPLA_DEV_STATE_CONNECTED);
 			}
 			break;
 
 		case SUPLA_DEV_STATE_CONNECTED:
-			if(!dev->reg_time.tv_sec || difftime(sys_time.tv_sec,dev->reg_time.tv_sec) > 10){
+			if(!dev->reg_time.tv_sec){
 				if(!supla_dev_register(dev)){
-					supla_log(LOG_ERR, "supla_dev_register failed!");
+					supla_log(LOG_ERR,"[%s] supla_dev_register failed!",dev->name);
+					supla_dev_set_state(dev,SUPLA_DEV_STATE_OFFLINE);
 				}
+			}
+			if(difftime(sys_time.tv_sec,dev->reg_time.tv_sec) > 10){
+				supla_log(LOG_ERR,"[%s] Register failed: server not responded!",dev->name);
+				supla_dev_set_connection_reset_cause(dev,SUPLA_LASTCONNECTIONRESETCAUSE_SERVER_CONNECTION_LOST);
+				supla_dev_set_state(dev,SUPLA_DEV_STATE_OFFLINE);
 			}
 			break;
 

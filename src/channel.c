@@ -147,7 +147,6 @@ int supla_channel_set_value(supla_channel_t *ch, void *value, size_t len)
 
 	lck_lock(priv->lck);
 	rc = supla_val_set(priv->supla_val,value,len);
-	//TODO allow to set sync policy: everytime/on change
 	lck_unlock(priv->lck);
 	return rc;
 }
@@ -168,8 +167,8 @@ int supla_channel_humidtemp_value(supla_channel_t *ch, double humid, double temp
 {
 	//TODO check channel type
 	char out[SUPLA_CHANNELVALUE_SIZE];
-	_supla_int_t t = temp * 1000.0;
-	_supla_int_t h = humid * 1000.0;
+	int32_t t = temp * 1000.0;
+	int32_t h = humid * 1000.0;
 	memcpy(&out[0], &t, 4);
 	memcpy(&out[4], &h, 4);
 	return supla_channel_set_value(ch,out,sizeof(out));
@@ -248,7 +247,6 @@ int supla_channel_set_extval(supla_channel_t *ch, TSuplaChannelExtendedValue *ex
 
 	lck_lock(priv->lck);
 	rc = supla_extval_set(priv->supla_extval,extval);
-	//TODO allow to set sync policy: everytime/on change
 	lck_unlock(priv->lck);
 	return rc;
 }
