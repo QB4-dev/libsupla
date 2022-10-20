@@ -5,7 +5,7 @@
 # libsupla library
 
 This library can be used to create devices and services connected with SUPLA Cloud.
-If compared with more featured [supla-device](https://github.com/SUPLA/supla-device) which is like 
+If compared with more complex [supla-device](https://github.com/SUPLA/supla-device) which is like 
 firmware/SDK based on Arduino lib ported to various platforms this library concept is more classical, 
 and has less dependencies.
 
@@ -112,5 +112,5 @@ while(!app_quit){
 }
 ```
 
-Device would automatically synchronize channel data with server
+Device would automatically synchronize channels data with server
 
