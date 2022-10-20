@@ -569,9 +569,13 @@ int supla_dev_exit_config_mode(supla_dev_t *dev)
 
 int supla_dev_setup(supla_dev_t *dev,  const struct supla_config *cfg)
 {
-	if(supla_dev_initialized(dev)){
-		supla_log(LOG_ERR,"Device [%s] already initialized", dev->name);
+	if(!dev || ! cfg)
 		return SUPLA_RESULT_FALSE;
+
+	if(supla_dev_initialized(dev)){
+		supla_log(LOG_WARNING,"Device [%s] already initialized", dev->name);
+		srpc_free(dev->srpc);
+		supla_link_free(dev->ssd);
 	}
 
 	dev->state = SUPLA_DEV_STATE_OFFLINE;
@@ -673,7 +677,7 @@ static int supla_dev_time_sync(supla_dev_t *dev)
 		return SUPLA_RESULT_FALSE;
 }
 
-static void supla_dev_handle_data_changed(supla_dev_t *dev)
+static void supla_dev_sync_channels_data(supla_dev_t *dev)
 {
 	supla_channel_t *ch;
 
@@ -725,7 +729,7 @@ int supla_dev_iterate(supla_dev_t *dev)
 
 		case SUPLA_DEV_STATE_REGISTERED:
 			supla_dev_time_sync(dev);
-			//TODO get channel config
+			//TODO get channels config
 			supla_dev_set_state(dev,SUPLA_DEV_STATE_ONLINE);
 			break;
 
@@ -736,10 +740,10 @@ int supla_dev_iterate(supla_dev_t *dev)
 				supla_dev_set_state(dev,SUPLA_DEV_STATE_OFFLINE);
 				return SUPLA_RESULT_FALSE;
 			}
-			supla_dev_handle_data_changed(dev);
+			supla_dev_sync_channels_data(dev);
 			break;
 		case SUPLA_DEV_STATE_CONFIG:
-			break;
+			return SUPLA_RESULT_TRUE; //FIXME
 		default:
 			break;
 	}
