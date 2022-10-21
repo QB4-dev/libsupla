@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
-#ifndef SUPLA_CHANNEL_PRIV_H_
-#define SUPLA_CHANNEL_PRIV_H_
+#ifndef SUPLA_DEVICE_PRIV_H_
+#define SUPLA_DEVICE_PRIV_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,4 +40,4 @@ void supla_channel_sync(void *srpc, supla_channel_t *ch);
 }
 #endif
 
-#endif /* SUPLA_CHANNEL_PRIV_H_ */
+#endif /* SUPLA_DEVICE_PRIV_H_ */
