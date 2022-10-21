@@ -572,13 +572,10 @@ int supla_dev_setup(supla_dev_t *dev,  const struct supla_config *cfg)
 	if(!dev || ! cfg)
 		return SUPLA_RESULT_FALSE;
 
-	if(supla_dev_initialized(dev)){
-		supla_log(LOG_WARNING,"Device [%s] already initialized", dev->name);
-		srpc_free(dev->srpc);
-		supla_link_free(dev->ssd);
-	}
-
+	srpc_free(dev->srpc);
+	supla_link_free(dev->ssd);
 	dev->state = SUPLA_DEV_STATE_OFFLINE;
+	
 	if(cfg->email[0]){
 		strncpy(dev->supla_config.email, cfg->email, SUPLA_EMAIL_MAXSIZE);
 	}else {
@@ -642,11 +639,6 @@ static int supla_dev_register(supla_dev_t *dev)
 	TDS_SuplaRegisterDevice_E reg_dev = {0};
 	supla_channel_t *ch;
 	uint8_t ch_num = 0;
-
-	if(!supla_dev_initialized(dev)){
-		supla_log(LOG_ERR,"[%s] Cannot register - not initialized", dev->name);
-		return SUPLA_RESULT_FALSE;
-	}
 
 	strncpy(reg_dev.Email, dev->supla_config.email, SUPLA_EMAIL_MAXSIZE);
 	strncpy(reg_dev.AuthKey, dev->supla_config.auth_key, SUPLA_AUTHKEY_SIZE);
