@@ -25,8 +25,7 @@ struct supla_dev {
 	struct supla_config supla_config;
 	int flags; //SUPLA_DEVICE_FLAG_*
 
-	_supla_int16_t manufacturer_id;
-	_supla_int16_t product_id;
+	struct manufacturer_data mfr_data;
 
 	on_change_state_callback_t on_state_change;
 	supla_device_get_state_handler_t on_get_channel_state;

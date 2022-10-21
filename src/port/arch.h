@@ -11,5 +11,6 @@
 
 #include "arch_unix.h"
 #include "arch_esp8266.h"
+#include "arch_esp32.h"
 
 #endif /* SRC_PORT_ARCH_H_ */

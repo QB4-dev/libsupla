@@ -418,8 +418,7 @@ int supla_dev_set_manufacturer_data(supla_dev_t *dev, const struct manufacturer_
 	if(!dev)
 		return SUPLA_RESULT_FALSE;
 
-	dev->manufacturer_id = mfr_data->manufacturer_id;
-	dev->product_id = mfr_data->product_id;
+	dev->mfr_data = *mfr_data;
 	return SUPLA_RESULT_TRUE;
 }
 
@@ -428,8 +427,7 @@ int supla_dev_get_manufacturer_data(const supla_dev_t *dev, struct manufacturer_
 	if(!dev)
 		return SUPLA_RESULT_FALSE;
 
-	mfr_data->manufacturer_id = dev->manufacturer_id;
-	mfr_data->product_id = dev->product_id;
+	*mfr_data = dev->mfr_data;
 	return SUPLA_RESULT_TRUE;
 }
 
@@ -478,7 +476,7 @@ int supla_dev_add_channel(supla_dev_t *dev, supla_channel_t *ch)
 
 	if(ch->type == SUPLA_CHANNELTYPE_ACTIONTRIGGER){
 		if(!priv->action_trigger){
-			supla_log(LOG_ERR,"[%s] cannot add channel: action trigger channel has no action trigger", dev->name);
+			supla_log(LOG_ERR,"[%s] cannot add channel: channel has no action trigger", dev->name);
 			return SUPLA_RESULTCODE_CHANNEL_CONFLICT;
 		}
 		if(ch->action_trigger_related_channel){
@@ -530,7 +528,7 @@ int supla_dev_enter_config_mode(supla_dev_t *dev)
 
 int supla_dev_exit_config_mode(supla_dev_t *dev)
 {
-	supla_dev_set_state(dev,SUPLA_DEV_STATE_OFFLINE);
+	supla_dev_set_state(dev,SUPLA_DEV_STATE_IDLE);
 	return 0;
 }
 
@@ -614,8 +612,8 @@ static int supla_dev_register(supla_dev_t *dev)
 	strncpy(reg_dev.SoftVer, dev->soft_ver, SUPLA_SOFTVER_MAXSIZE);
 	strncpy(reg_dev.ServerName, dev->supla_config.server, SUPLA_SERVER_NAME_MAXSIZE);
 	reg_dev.Flags = dev->flags;
-	reg_dev.ManufacturerID = dev->manufacturer_id;
-	reg_dev.ProductID = dev->product_id;
+	reg_dev.ManufacturerID = dev->mfr_data.manufacturer_id;
+	reg_dev.ProductID = dev->mfr_data.product_id;
 
 	STAILQ_FOREACH(ch,&dev->channels,channels){
 		reg_dev.channels[ch_num] = supla_channel_to_register_struct(ch);
@@ -657,12 +655,17 @@ int supla_dev_iterate(supla_dev_t *dev)
 
 	dev->uptime = difftime(sys_time.tv_sec, dev->init_time.tv_sec);
 	switch (dev->state) {
+		case SUPLA_DEV_STATE_IDLE:
+			return SUPLA_RESULT_TRUE; //FIXME
+
 		case SUPLA_DEV_STATE_OFFLINE:
 			memset(&dev->reg_time,0,sizeof(dev->reg_time));
 			memset(&dev->last_call,0,sizeof(dev->last_call));
 			memset(&dev->last_resp,0,sizeof(dev->last_resp));
 
-			supla_log(LOG_INFO,"[%s] Connecting to: %s:%d",dev->name,dev->supla_config.server,dev->supla_config.port);
+			supla_log(LOG_INFO,"[%s] Connecting to: %s:%d",
+					dev->name,dev->supla_config.server,dev->supla_config.port);
+
 			if (supla_link_connect(dev->ssd) == 0){
 				supla_delay_ms(5000);
 				return SUPLA_RESULT_FALSE;

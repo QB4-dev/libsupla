@@ -12,7 +12,7 @@
 #elif LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP8266
 #endif
 
-#if LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP8266
+#if LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP8266 || LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP32
 typedef struct {
 	int sfd;
 }esp_socket_t;
@@ -134,7 +134,7 @@ void *supla_link_init(const char host[], int port, unsigned char secure)
 {
 #if LIBSUPLA_ARCH == LIBSUPLA_ARCH_UNIX
 	return ssocket_client_init(host,port,secure);
-#elif LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP8266
+#elif LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP8266 || LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP32
 	return esp_link_init(host,port,secure);
 #else
   return NULL;
@@ -145,10 +145,10 @@ int supla_link_connect(void *link)
 {
 #if LIBSUPLA_ARCH == LIBSUPLA_ARCH_UNIX
 	return ssocket_client_connect(link,NULL,NULL);
-#elif LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP8266
+#elif LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP8266 || LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP32
 	return esp_link_connect(link);
 #else
-  return NULL;
+  return 0;
 #endif
 }
 
@@ -156,10 +156,10 @@ int supla_link_read(void *link, void *buf, int count)
 {
 #if LIBSUPLA_ARCH == LIBSUPLA_ARCH_UNIX
 	return ssocket_read(link,NULL,buf,count);
-#elif LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP8266
+#elif LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP8266 || LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP32
 	return esp_link_read(link,buf,count);
 #else
-  return NULL;
+  return 0;
 #endif
 }
 
@@ -167,10 +167,10 @@ int supla_link_write(void *link, void *buf, int count)
 {
 #if LIBSUPLA_ARCH == LIBSUPLA_ARCH_UNIX
 	return ssocket_write(link,NULL,buf,count);
-#elif LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP8266
+#elif LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP8266 || LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP32
 	return esp_link_write(link,buf,count);
 #else
-  return NULL;
+  return 0;
 #endif
 }
 
@@ -178,10 +178,10 @@ void supla_link_close(void *link)
 {
 #if LIBSUPLA_ARCH == LIBSUPLA_ARCH_UNIX
 	return supla_link_close(link);
-#elif LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP8266
+#elif LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP8266 || LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP32
 	return esp_link_close(link);
 #else
-  return NULL;
+  return 0;
 #endif
 }
 
@@ -189,9 +189,9 @@ void supla_link_free(void *link)
 {
 #if LIBSUPLA_ARCH == LIBSUPLA_ARCH_UNIX
 	return ssocket_free(link);
-#elif LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP8266
+#elif LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP8266 || LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP32
 	return esp_link_free(link);
 #else
-  return NULL;
+  return 0;
 #endif
 }
