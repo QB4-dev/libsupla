@@ -43,12 +43,12 @@ extern "C" {
 typedef struct supla_dev supla_dev_t;
 
 typedef enum {
-	SUPLA_DEV_STATE_IDLE = 0,
-	SUPLA_DEV_STATE_OFFLINE,
+	SUPLA_DEV_STATE_CONFIG = -1,
+	SUPLA_DEV_STATE_OFFLINE = 0,
+	SUPLA_DEV_STATE_DISCONNECTED,
 	SUPLA_DEV_STATE_CONNECTED,
 	SUPLA_DEV_STATE_REGISTERED,
 	SUPLA_DEV_STATE_ONLINE,
-	SUPLA_DEV_STATE_CONFIG
 }supla_dev_state_t;
 
 struct manufacturer_data {
@@ -255,22 +255,6 @@ int supla_dev_get_channel_count(const supla_dev_t *dev);
 supla_channel_t *supla_dev_get_channel_by_num(const supla_dev_t *dev, int num);
 
 /**
- * @brief Enter config mode
- *
- * @param[in] dev SUPLA device instance
- * @return SUPLA_RESULT_TRUE on success
- */
-int supla_dev_enter_config_mode(supla_dev_t *dev);
-
-/**
- * @brief Exit config mode
- *
- * @param[in] dev SUPLA device instance
- * @return SUPLA_RESULT_TRUE on success
- */
-int supla_dev_exit_config_mode(supla_dev_t *dev);
-
-/**
  * @brief Setup SUPLA device
  *
  * @param[in] dev SUPLA device instance
@@ -280,6 +264,23 @@ int supla_dev_exit_config_mode(supla_dev_t *dev);
 int supla_dev_setup(supla_dev_t *dev, const struct supla_config *cfg);
 
 /**
+ * @brief Start SUPLA device activity if is offline
+ * or in config mode
+ *
+ * @param[in] dev SUPLA device instance
+ * @return SUPLA_RESULT_TRUE on success
+ */
+int supla_dev_start(supla_dev_t *dev);
+
+/**
+ * @brief Stop SUPLA device activity
+ *
+ * @param[in] dev SUPLA device instance
+ * @return SUPLA_RESULT_TRUE on success
+ */
+int supla_dev_stop(supla_dev_t *dev);
+
+/**
  * @brief SUPLA device iterate - handle connection with server/sync data,
  * put this function in endless loop
  *
@@ -287,6 +288,14 @@ int supla_dev_setup(supla_dev_t *dev, const struct supla_config *cfg);
  * @return 0 on success
  */
 int supla_dev_iterate(supla_dev_t *dev);
+
+/**
+ * @brief Enter config mode
+ *
+ * @param[in] dev SUPLA device instance
+ * @return SUPLA_RESULT_TRUE on success
+ */
+int supla_dev_enter_config_mode(supla_dev_t *dev);
 
 #ifdef __cplusplus
 }

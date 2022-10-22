@@ -128,7 +128,14 @@ int esp_link_write(esp_socket_data_t *ssd, void *buf, int count)
 }
 #endif
 
-
+//supla_net_adapter_t esp_net_adapter = {
+//	.init = esp_link_init,
+//	.connect = esp_link_connect,
+//	.read = esp_link_read,
+//	.write = esp_link_write,
+//	.close = esp_link_close,
+//	.free = esp_link_free
+//};
 
 void *supla_link_init(const char host[], int port, unsigned char secure)
 {
