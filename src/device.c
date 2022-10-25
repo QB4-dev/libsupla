@@ -44,14 +44,14 @@ static void supla_dev_set_state(supla_dev_t *dev, supla_dev_state_t new_state)
 		dev->on_state_change(dev,dev->state);
 
 	switch(new_state) {
-		case SUPLA_DEV_STATE_OFFLINE:
+		case SUPLA_DEV_STATE_IDLE:
 		case SUPLA_DEV_STATE_DISCONNECTED:
+		case SUPLA_DEV_STATE_CONFIG:
 			supla_link_close(dev->ssd);
 			break;
 		case SUPLA_DEV_STATE_CONNECTED:
 		case SUPLA_DEV_STATE_REGISTERED:
 		case SUPLA_DEV_STATE_ONLINE:
-		case SUPLA_DEV_STATE_CONFIG:
 		default:
 			break;
 	}
@@ -605,7 +605,7 @@ int supla_dev_start(supla_dev_t *dev)
 	if(!dev)
 		return SUPLA_RESULT_FALSE;
 
-	if(dev->state != SUPLA_DEV_STATE_OFFLINE && dev->state != SUPLA_DEV_STATE_CONFIG)
+	if(dev->state != SUPLA_DEV_STATE_IDLE && dev->state != SUPLA_DEV_STATE_CONFIG)
 		return SUPLA_RESULT_FALSE; //FIXME handle mutex locking here
 
 	supla_dev_set_state(dev,SUPLA_DEV_STATE_DISCONNECTED);
@@ -617,7 +617,7 @@ int supla_dev_stop(supla_dev_t *dev)
 	if(!dev)
 		return SUPLA_RESULT_FALSE;
 
-	supla_dev_set_state(dev,SUPLA_DEV_STATE_OFFLINE);
+	supla_dev_set_state(dev,SUPLA_DEV_STATE_IDLE);
 	return SUPLA_RESULT_TRUE;
 }
 
@@ -677,8 +677,9 @@ int supla_dev_iterate(supla_dev_t *dev)
 
 	dev->uptime = difftime(sys_time.tv_sec, dev->init_time.tv_sec);
 	switch (dev->state) {
-		case SUPLA_DEV_STATE_OFFLINE:
-			return SUPLA_RESULT_TRUE; //FIXME
+		case SUPLA_DEV_STATE_CONFIG:
+		case SUPLA_DEV_STATE_IDLE:
+			return SUPLA_RESULT_TRUE;
 
 		case SUPLA_DEV_STATE_DISCONNECTED:
 			memset(&dev->reg_time,0,sizeof(dev->reg_time));
@@ -726,8 +727,6 @@ int supla_dev_iterate(supla_dev_t *dev)
 			}
 			supla_dev_sync_channels_data(dev);
 			break;
-		case SUPLA_DEV_STATE_CONFIG:
-			return SUPLA_RESULT_TRUE; //FIXME
 		default:
 			break;
 	}

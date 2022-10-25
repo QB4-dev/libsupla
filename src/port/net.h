@@ -16,13 +16,13 @@ int supla_link_write(void *link, void *buf, int count);
 void supla_link_close(void *link);
 void supla_link_free(void *link);
 
-//typedef struct {
-//	void *(*init)(const char host[], int port, unsigned char secure);
-//	int (*connect)(void *link);
-//	int (*read)(void *link, void *buf, int count);
-//	int (*write)(void *link, void *buf, int count);
-//	void (*close)(void *link);
-//	void (*free)(void *link);
-//} supla_net_adapter_t;
+typedef struct {
+	void *(*init)(const char host[], int port, unsigned char secure);
+	int (*connect)(void *link);
+	int (*read)(void *link, void *buf, int count);
+	int (*write)(void *link, void *buf, int count);
+	void (*close)(void *link);
+	void (*free)(void *link);
+} supla_connect_method_t;
 
 #endif /* SRC_PORT_NET_H_ */
