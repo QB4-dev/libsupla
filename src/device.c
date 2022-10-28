@@ -42,19 +42,6 @@ static void supla_dev_set_state(supla_dev_t *dev, supla_dev_state_t new_state)
 	dev->state = new_state;
 	if(dev->on_state_change)
 		dev->on_state_change(dev,dev->state);
-
-	switch(new_state) {
-		case SUPLA_DEV_STATE_IDLE:
-		case SUPLA_DEV_STATE_DISCONNECTED:
-		case SUPLA_DEV_STATE_CONFIG:
-			//dev->cloud_backend->close(dev->link);
-			break;
-		case SUPLA_DEV_STATE_CONNECTED:
-		case SUPLA_DEV_STATE_REGISTERED:
-		case SUPLA_DEV_STATE_ONLINE:
-		default:
-			break;
-	}
 }
 
 static void supla_dev_set_connection_reset_cause(supla_dev_t *dev, unsigned char cause)
