@@ -18,7 +18,8 @@ struct supla_dev {
 	char name[SUPLA_DEVICE_NAME_MAXSIZE];
 	char soft_ver[SUPLA_SOFTVER_MAXSIZE];
 
-	void *ssd;
+	supla_cloud_backend_t *cloud_backend;
+	void *link;
 	void *srpc;
 
 	supla_dev_state_t state;

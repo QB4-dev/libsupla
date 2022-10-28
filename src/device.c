@@ -13,19 +13,19 @@
 
 static int supla_dev_initialized(supla_dev_t *dev)
 {
-	return (dev->ssd != NULL && dev->srpc != NULL);
+	return (dev->cloud_backend && dev->link && dev->srpc);
 }
 
 static int supla_dev_read(void *buf, int count, void *dcd)
 {
 	supla_dev_t *dev = dcd;
-	return supla_link_read(dev->ssd, buf, count);
+	return dev->cloud_backend->read(dev->link, buf, count);
 }
 
 static int supla_dev_write(void *buf, int count, void *dcd)
 {
 	supla_dev_t *dev = dcd;
-	return supla_link_write(dev->ssd, buf, count);
+	return dev->cloud_backend->write(dev->link, buf, count);
 }
 
 void supla_dev_before_async_call(void *_srpc, unsigned int call_type, void *dcd)
@@ -47,7 +47,7 @@ static void supla_dev_set_state(supla_dev_t *dev, supla_dev_state_t new_state)
 		case SUPLA_DEV_STATE_IDLE:
 		case SUPLA_DEV_STATE_DISCONNECTED:
 		case SUPLA_DEV_STATE_CONFIG:
-			supla_link_close(dev->ssd);
+			//dev->cloud_backend->close(dev->link);
 			break;
 		case SUPLA_DEV_STATE_CONNECTED:
 		case SUPLA_DEV_STATE_REGISTERED:
@@ -372,6 +372,8 @@ supla_dev_t* supla_dev_create(const char *dev_name, const char *soft_ver)
 	else
 		strncpy(dev->soft_ver,"libsupla "LIBSUPLA_VER,SUPLA_SOFTVER_MAXSIZE-1);
 
+	dev->cloud_backend = &default_cloud_backend;
+
 	gettimeofday(&dev->init_time,NULL);
 	STAILQ_INIT(&dev->channels);
 	return dev;
@@ -381,7 +383,7 @@ int supla_dev_free(supla_dev_t *dev)
 {
 	supla_channel_t *ch;
 
-	supla_link_free(dev->ssd);
+	dev->cloud_backend->free(dev->link);
 	srpc_free(dev->srpc);
 
 	STAILQ_FOREACH(ch,&dev->channels,channels){
@@ -470,6 +472,41 @@ int supla_dev_set_server_time_sync_callback(supla_dev_t *dev, on_server_time_syn
 	return SUPLA_RESULT_TRUE;
 }
 
+int supla_dev_set_cloud_backend(supla_dev_t *dev, supla_cloud_backend_t *backend)
+{
+	if(!backend->init){
+		supla_log(LOG_ERR,"[%s] cannot set backend[%s]: init() missing",dev->name,backend->id);
+		return SUPLA_RESULT_FALSE;
+	}
+
+	if(!backend->connect){
+		supla_log(LOG_ERR,"[%s] cannot set backend[%s]: connect() missing",dev->name,backend->id);
+		return SUPLA_RESULT_FALSE;
+	}
+
+	if(!backend->read){
+		supla_log(LOG_ERR,"[%s] cannot set backend[%s]: read() missing",dev->name,backend->id);
+		return SUPLA_RESULT_FALSE;
+	}
+
+	if(!backend->write){
+		supla_log(LOG_ERR,"[%s] cannot set backend[%s]: write() missing",dev->name,backend->id);
+		return SUPLA_RESULT_FALSE;
+	}
+
+	if(!backend->close){
+		supla_log(LOG_ERR,"[%s] cannot set backend[%s]: close() missing",dev->name,backend->id);
+		return SUPLA_RESULT_FALSE;
+	}
+
+	if(!backend->free){
+		supla_log(LOG_ERR,"[%s] cannot set backend[%s]: free() missing",dev->name,backend->id);
+		return SUPLA_RESULT_FALSE;
+	}
+	dev->cloud_backend = backend;
+	return SUPLA_RESULT_TRUE;
+}
+
 int supla_dev_add_channel(supla_dev_t *dev, supla_channel_t *ch)
 {
 	int channel_count;
@@ -539,7 +576,7 @@ int supla_dev_setup(supla_dev_t *dev,  const struct supla_config *cfg)
 		return SUPLA_RESULT_FALSE;
 
 	srpc_free(dev->srpc);
-	supla_link_free(dev->ssd);
+	dev->cloud_backend->free(dev->link);
 	dev->state = SUPLA_DEV_STATE_DISCONNECTED;
 	
 	if(cfg->email[0]){
@@ -591,8 +628,8 @@ int supla_dev_setup(supla_dev_t *dev,  const struct supla_config *cfg)
 	dev->srpc = srpc_init(&srpc_params);
 	srpc_set_proto_version(dev->srpc, SUPLA_PROTO_VERSION);
 
-	dev->ssd = supla_link_init(dev->supla_config.server, dev->supla_config.port, dev->supla_config.ssl);
-	if(!dev->ssd){
+	dev->link = dev->cloud_backend->init(dev->supla_config.server, dev->supla_config.port, dev->supla_config.ssl);
+	if(!dev->link){
 		supla_log(LOG_ERR,"Cannot create socket");
 		return SUPLA_RESULT_FALSE;
 	}
@@ -689,7 +726,7 @@ int supla_dev_iterate(supla_dev_t *dev)
 			supla_log(LOG_INFO,"[%s] Connecting to: %s:%d",
 					dev->name,dev->supla_config.server,dev->supla_config.port);
 
-			if (supla_link_connect(dev->ssd) == 0){
+			if(dev->cloud_backend->connect(dev->link) == 0){
 				supla_delay_ms(5000);
 				return SUPLA_RESULT_FALSE;
 			} else {
