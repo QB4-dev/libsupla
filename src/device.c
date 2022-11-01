@@ -630,7 +630,7 @@ int supla_dev_start(supla_dev_t *dev)
 		return SUPLA_RESULT_FALSE;
 
 	if(dev->state != SUPLA_DEV_STATE_IDLE && dev->state != SUPLA_DEV_STATE_CONFIG)
-		return SUPLA_RESULT_FALSE; //FIXME handle mutex locking here
+		return SUPLA_RESULT_FALSE;
 
 	supla_dev_set_state(dev,SUPLA_DEV_STATE_DISCONNECTED);
 	return SUPLA_RESULT_TRUE;
@@ -710,8 +710,8 @@ int supla_dev_iterate(supla_dev_t *dev)
 			memset(&dev->last_call,0,sizeof(dev->last_call));
 			memset(&dev->last_resp,0,sizeof(dev->last_resp));
 
-			supla_log(LOG_INFO,"[%s] Connecting to: %s:%d",
-					dev->name,dev->supla_config.server,dev->supla_config.port);
+			supla_log(LOG_INFO,"[%s] Connecting to: %s:%d using: %s",
+					dev->name,dev->supla_config.server,dev->supla_config.port,dev->cloud_backend->id);
 
 			if(dev->cloud_backend->connect(dev->link) == 0){
 				supla_delay_ms(5000);

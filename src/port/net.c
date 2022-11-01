@@ -65,8 +65,10 @@ void *basic_socket_init(const char host[], int port, unsigned char secure)
 	if(!ssd)
 		return NULL;
 	memset(ssd, 0, sizeof(backend_data_t));
-	if(secure)
+	if(secure){
 		supla_log(LOG_WARNING,"WARNING: basic SUPLA Cloud backend doesn't support encryption");
+		port = (!port || port == 2016) ? port : 2015; //switch to unencrypted port
+	}
 
 	ssd->port = port;
 	ssd->sfd = -1;
