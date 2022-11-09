@@ -274,7 +274,7 @@ static void supla_dev_on_remote_call_received(void *_srpc,
 		return;
 	}
 
-	switch (rd.call_type) {
+	switch (rd.call_id) {
 	case SUPLA_SDC_CALL_GETVERSION_RESULT:
 		supla_log(LOG_DEBUG, "Received get version from server: %d",proto_version);
 		break;
@@ -591,7 +591,7 @@ int supla_dev_setup(supla_dev_t *dev,  const struct supla_config *cfg)
 		strncpy(dev->supla_config.server, cfg->server,SUPLA_SERVER_NAME_MAXSIZE);
 	}else {
 		supla_log(LOG_ERR,"server not set");
-		return SUPLA_RESULTCODE_CANTCONNECTTOHOST;
+		return SUPLA_RESULT_FALSE;
 	}
 
 	dev->supla_config.ssl = cfg->ssl ? 1:0;

@@ -39,8 +39,7 @@
 #include <assert.h>
 #include <fcntl.h>
 #include <netdb.h>
-#include <openssl/err.h>
-#include <openssl/ssl.h>
+#include <errno.h>
 #include <resolv.h>
 #include <stdlib.h>
 #include <string.h>
@@ -50,11 +49,15 @@
 
 #endif /*ifdef _WIN32*/
 
+#ifndef NOSSL
+#include <openssl/err.h>
+#include <openssl/ssl.h>
+#endif /*ifndef NOSSL*/
+
 #include "lck.h"
 #include "log.h"
 #include "supla-socket.h"
 #include "tools.h"
-
 
 typedef struct {
   int sfd;
@@ -109,7 +112,7 @@ SSL_CTX *ssocket_initserverctx(void) {
 
   OpenSSL_add_all_algorithms();
 
-  method = (SSL_METHOD *)SSLv23_server_method();
+  method = (SSL_METHOD *)TLS_server_method();
   ctx = SSL_CTX_new(method);
 
   if (ctx == NULL) ssocket_ssl_error_log();
@@ -144,6 +147,21 @@ unsigned char ssocket_loadcertificates(SSL_CTX *ctx, const char *CertFile,
     return 0;
   }
 
+  X509 *x509 = SSL_CTX_get0_certificate(ctx);
+  const ASN1_TIME *notAfter = X509_getm_notAfter(x509);
+
+  int remaining_days = 0, remaining_seconds = 0;
+  ASN1_TIME_diff(&remaining_days, &remaining_seconds, NULL, notAfter);
+  if (remaining_days <= 60) {
+    if (remaining_days > 0 || remaining_seconds > 0) {
+      supla_log(LOG_WARNING,
+                "The SSL certificate is expiring. Days remaining: %i",
+                remaining_days);
+    } else {
+      supla_log(LOG_ERR, "SSL certificate expired!");
+    }
+  }
+
   return 1;
 }
 
@@ -172,44 +190,6 @@ void ssocket_showcerts(SSL *ssl) {
   } else {
     supla_log(LOG_DEBUG, "No certificates.");
   }
-}
-
-int32_t ssocket_ssl_error(TSuplaSocket *supla_socket, int ret_code) {
-  int32_t ssl_error;
-
-  ssl_error = SSL_get_error(supla_socket->ssl, ret_code);
-
-  switch (ssl_error) {
-    case SSL_ERROR_NONE:
-      supla_log(LOG_DEBUG, "SSL_ERROR_NONE");
-      break;
-    case SSL_ERROR_SSL:
-      supla_log(LOG_DEBUG, "SSL_ERROR_SSL");
-      break;
-    case SSL_ERROR_WANT_READ:
-      supla_log(LOG_DEBUG, "SSL_ERROR_WANT_READ");
-      break;
-    case SSL_ERROR_WANT_WRITE:
-      supla_log(LOG_DEBUG, "SSL_ERROR_WANT_WRITE");
-      break;
-    case SSL_ERROR_WANT_X509_LOOKUP:
-      supla_log(LOG_DEBUG, "SSL_ERROR_WANT_X509_LOOKUP");
-      break;
-    case SSL_ERROR_SYSCALL:
-      supla_log(LOG_DEBUG, "SSL_ERROR_SYSCALL");
-      break;
-    case SSL_ERROR_ZERO_RETURN:
-      supla_log(LOG_DEBUG, "SSL_ERROR_ZERO_RETURN");
-      break;
-    case SSL_ERROR_WANT_CONNECT:
-      supla_log(LOG_DEBUG, "SSL_ERROR_WANT_CONNECT");
-      break;
-    case SSL_ERROR_WANT_ACCEPT:
-      supla_log(LOG_DEBUG, "SSL_ERROR_WANT_ACCEPT");
-      break;
-  }
-
-  return ssl_error;
 }
 
 SSL_CTX *ssocket_client_initctx(void) {
@@ -392,6 +372,16 @@ char ssocket_accept(void *_ssd, unsigned int *ipv4, void **_supla_socket) {
   return result;
 }
 
+void ssocket_ssl_new(void *_ssd, void *_supla_socket) {
+#ifndef NOSSL
+  TSuplaSocket *supla_socket = (TSuplaSocket *)_supla_socket;
+  TSuplaSocketData *ssd = (TSuplaSocketData *)_ssd;
+  if (supla_socket && supla_socket->sfd != -1 && ssd && ssd->secure == 1) {
+    supla_socket->ssl = SSL_new(ssd->ctx);
+  }
+#endif /*ifdef NOSSL*/
+}
+
 char ssocket_accept_ssl(void *_ssd, void *_supla_socket) {
   TSuplaSocket *supla_socket = (TSuplaSocket *)_supla_socket;
 #ifndef NOSSL
@@ -409,7 +399,6 @@ char ssocket_accept_ssl(void *_ssd, void *_supla_socket) {
     if (n == -1) {
       supla_log(LOG_ERR, "SO_RCVTIMEO/%i", tv.tv_sec);
     } else {
-      supla_socket->ssl = SSL_new(ssd->ctx);
       SSL_set_fd(supla_socket->ssl, supla_socket->sfd);
     }
 
@@ -433,8 +422,9 @@ char ssocket_accept_ssl(void *_ssd, void *_supla_socket) {
         ssocket_supla_socket_close(supla_socket);
       }
 
-      supla_log(LOG_INFO, "Cipher: %s, ClientSD: %i",
-                SSL_get_cipher(supla_socket->ssl), supla_socket->sfd);
+      supla_log(LOG_INFO, "Cipher: %s, SSL Version: %s, ClientSD: %i",
+                SSL_get_cipher(supla_socket->ssl),
+                SSL_get_version(supla_socket->ssl), supla_socket->sfd);
     }
   }
 
@@ -545,7 +535,7 @@ int ssocket_client_openconnection(TSuplaSocketData *ssd, const char *state_file,
   }
 
   if (getaddrinfo(server, port, &hints, &res) != 0) {
-    if (err) *err = SUPLA_RESULTCODE_HOSTNOTFOUND;
+    if (err) *err = SUPLA_RESULT_HOST_NOT_FOUND;
 
     supla_write_state_file(state_file, LOG_ERR, "Host not found %s", server);
     return -1;
@@ -573,7 +563,7 @@ int ssocket_client_openconnection(TSuplaSocketData *ssd, const char *state_file,
 
     ssd->supla_socket.sfd = -1;
 
-    if (err) *err = SUPLA_RESULTCODE_CANTCONNECTTOHOST;
+    if (err) *err = SUPLA_RESULT_CANT_CONNECT_TO_HOST;
 
     supla_write_state_file(state_file, LOG_ERR, "Can't connect to host %s",
                            ssd->host == NULL ? "" : ssd->host);
@@ -594,9 +584,8 @@ int ssocket_client_openconnection(TSuplaSocketData *ssd, const char *state_file,
 void *ssocket_client_init(const char host[], int port, unsigned char secure) {
   TSuplaSocketData *ssd = malloc(sizeof(TSuplaSocketData));
 
-  if (ssd == NULL) return NULL;
-
-  supla_log(LOG_INFO, "SSL version: %s", OPENSSL_VERSION_TEXT);
+  if (ssd == NULL) \
+	return NULL;
 
   memset(ssd, 0, sizeof(TSuplaSocketData));
 
@@ -613,6 +602,7 @@ void *ssocket_client_init(const char host[], int port, unsigned char secure) {
   }
 
 #ifndef NOSSL
+  supla_log(LOG_INFO, "SSL version: %s", OPENSSL_VERSION_TEXT);
   if (secure == 1) {
     SSL_library_init();
     SSL_load_error_strings();
@@ -675,6 +665,41 @@ char ssocket_is_secure(void *_ssd) {
   return ((TSuplaSocketData *)_ssd)->secure == 1;
 }
 
+#ifndef NOSSL
+void ssocket_log_ssl_error(void *_supla_socket, int ret) {
+
+  TSuplaSocket *supla_socket = (TSuplaSocket *)_supla_socket;
+
+  // SSL_get_error consumes quite a few CPU cycles.
+  int32_t ssl_error = SSL_get_error(supla_socket->ssl, ret);
+  if (ssl_error != SSL_ERROR_WANT_READ && ssl_error != SSL_ERROR_WANT_WRITE) {
+    switch (ssl_error) {
+      case SSL_ERROR_NONE:
+        supla_log(LOG_DEBUG, "SSL_ERROR_NONE");
+        break;
+      case SSL_ERROR_SSL:
+        supla_log(LOG_DEBUG, "SSL_ERROR_SSL");
+        break;
+      case SSL_ERROR_WANT_X509_LOOKUP:
+        supla_log(LOG_DEBUG, "SSL_ERROR_WANT_X509_LOOKUP");
+        break;
+      case SSL_ERROR_SYSCALL:
+        supla_log(LOG_DEBUG, "SSL_ERROR_SYSCALL");
+        break;
+      case SSL_ERROR_ZERO_RETURN:
+        supla_log(LOG_DEBUG, "SSL_ERROR_ZERO_RETURN");
+        break;
+      case SSL_ERROR_WANT_CONNECT:
+        supla_log(LOG_DEBUG, "SSL_ERROR_WANT_CONNECT");
+        break;
+      case SSL_ERROR_WANT_ACCEPT:
+        supla_log(LOG_DEBUG, "SSL_ERROR_WANT_ACCEPT");
+        break;
+    }
+  }
+}
+#endif /*ifndef NOSSL*/
+
 int ssocket_read(void *_ssd, void *_supla_socket, void *buf, int count) {
   TSuplaSocketData *ssd = (TSuplaSocketData *)_ssd;
   TSuplaSocket *supla_socket = _supla_socket == NULL
@@ -683,19 +708,20 @@ int ssocket_read(void *_ssd, void *_supla_socket, void *buf, int count) {
 
   assert(ssd != NULL);
 
+  if (supla_socket->sfd == -1) {
+    return 0;
+  }
+
   if (ssd->secure == 1) {
 #ifdef NOSSL
     count = 0;
 #else
     count = SSL_read(supla_socket->ssl, buf, count);
 
-#ifdef __DEBUG
-    // SSL_get_error consumes quite a few CPU cycles.
-    if (count < 0 &&
-        SSL_get_error(supla_socket->ssl, count) != SSL_ERROR_WANT_READ) {
-      ssocket_ssl_error(supla_socket, count);
-    }
-#endif /*__DEBUG*/
+    // Only for debug purposes
+    // if (count < 0) {
+    //  ssocket_log_ssl_error(supla_socket, count);
+    //}
 
 #endif /*ifdef NOSSL*/
 
@@ -724,6 +750,10 @@ int ssocket_write(void *_ssd, void *_supla_socket, const void *buf, int count) {
 
   assert(ssd != NULL);
 
+  if (supla_socket->sfd == -1) {
+    return -1;
+  }
+
 #if defined(__DEBUG) && __SSOCKET_WRITE_TO_FILE == 1
   if (count > 0) {
     FILE *f = fopen("ssocket_write.raw", "ab");
@@ -738,7 +768,10 @@ int ssocket_write(void *_ssd, void *_supla_socket, const void *buf, int count) {
 #ifndef NOSSL
     count = SSL_write(supla_socket->ssl, buf, count);
 
-    if (count < 0) ssocket_ssl_error(supla_socket, count);
+    // Only for debug purposes
+    // if (count < 0) {
+    //  ssocket_log_ssl_error(_supla_socket, count);
+    //}
 #else
     return -1;
 #endif /*ifndef NOSSL*/

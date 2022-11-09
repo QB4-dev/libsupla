@@ -7,7 +7,7 @@
 #include "net.h"
 #include "arch.h"
 
-#if LIBSUPLA_ARCH == LIBSUPLA_ARCH_UNIX
+#if (LIBSUPLA_ARCH == LIBSUPLA_ARCH_UNIX)
 #include "../supla-common/supla-socket.h"
 
 void *supla_socket_init(const char host[], int port, unsigned char secure)
@@ -41,7 +41,7 @@ void supla_socket_free(void *link)
 }
 
 supla_cloud_backend_t default_cloud_backend = {
-	.id = "supla_socket_backend",
+	.id = "supla-socket-backend",
 	.init = supla_socket_init,
 	.connect = supla_socket_connect,
 	.read = supla_socket_read,
@@ -64,6 +64,7 @@ void *basic_socket_init(const char host[], int port, unsigned char secure)
 	backend_data_t *ssd = malloc(sizeof(backend_data_t));
 	if(!ssd)
 		return NULL;
+		
 	memset(ssd, 0, sizeof(backend_data_t));
 	if(secure){
 		supla_log(LOG_WARNING,"WARNING: basic SUPLA Cloud backend doesn't support encryption");
@@ -162,7 +163,7 @@ int basic_socket_write(void *ssd, void *buf, int count)
 }
 
 supla_cloud_backend_t default_cloud_backend = {
-	.id = "default_cloud_backend",
+	.id = "default-backend",
 	.init = basic_socket_init,
 	.connect = basic_socket_connect,
 	.read = basic_socket_read,
