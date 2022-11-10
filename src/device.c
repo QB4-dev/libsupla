@@ -13,25 +13,25 @@
 
 static int supla_dev_initialized(supla_dev_t *dev)
 {
-	return (dev->cloud_backend && dev->link && dev->srpc);
+	return (dev->cloud_backend && dev->cloud_link && dev->srpc);
 }
 
 static int supla_dev_read(void *buf, int count, void *dcd)
 {
 	supla_dev_t *dev = dcd;
-	return dev->cloud_backend->read(dev->link, buf, count);
+	return dev->cloud_backend->read(dev->cloud_link, buf, count);
 }
 
 static int supla_dev_write(void *buf, int count, void *dcd)
 {
 	supla_dev_t *dev = dcd;
-	return dev->cloud_backend->write(dev->link, buf, count);
+	return dev->cloud_backend->write(dev->cloud_link, buf, count);
 }
 
 void supla_dev_before_async_call(void *_srpc, unsigned int call_type, void *dcd)
 {
-    supla_dev_t *dev = dcd;
-    gettimeofday(&dev->last_call, NULL);
+	supla_dev_t *dev = dcd;
+	gettimeofday(&dev->last_call, NULL);
 }
 
 static void supla_dev_set_state(supla_dev_t *dev, supla_dev_state_t new_state)
@@ -56,32 +56,15 @@ static void supla_connection_on_version_error(TSDC_SuplaVersionError *version_er
 	version_error->server_version, SUPLA_PROTO_VERSION);
 }
 
-static void supla_connection_on_register_result(supla_dev_t *dev, TSD_SuplaRegisterDeviceResult *register_device_result)
+static void supla_connection_on_register_result(supla_dev_t *dev, TSD_SuplaRegisterDeviceResult *regdev_res)
 {
-	switch (register_device_result->result_code) {
-	case SUPLA_RESULTCODE_TRUE:{
-		TDCS_SuplaSetActivityTimeout timeout;
-		supla_log(LOG_INFO,"[%s] registered: srv ver: %d(min=%d), activity timeout=%ds",
-				dev->name,
-				register_device_result->version,
-				register_device_result->version_min,
-				register_device_result->activity_timeout);
-
-		if(dev->supla_config.activity_timeout != register_device_result->activity_timeout){
-			supla_log(LOG_DEBUG, "Setting activity timeout to %ds", dev->supla_config.activity_timeout);
-			timeout.activity_timeout =  dev->supla_config.activity_timeout;
-			srpc_dcs_async_set_activity_timeout(dev->srpc,&timeout);
-		}
-		gettimeofday(&dev->reg_time,NULL);
-		supla_dev_set_state(dev,SUPLA_DEV_STATE_REGISTERED);
-		}break;
-
+	switch (regdev_res->result_code) {
 	case SUPLA_RESULTCODE_BAD_CREDENTIALS:
 		supla_log(LOG_ERR,"Bad credentials!");
 		break;
 
 	case SUPLA_RESULTCODE_TEMPORARILY_UNAVAILABLE:
-		supla_log(LOG_NOTICE,"Temporarily unavailable!");
+		supla_log(LOG_ERR,"Temporarily unavailable!");
 		break;
 
 	case SUPLA_RESULTCODE_LOCATION_CONFLICT:
@@ -93,35 +76,59 @@ static void supla_connection_on_register_result(supla_dev_t *dev, TSD_SuplaRegis
 		break;
 
 	case SUPLA_RESULTCODE_DEVICE_DISABLED:
-		supla_log(LOG_NOTICE,"Device is disabled!");
+		supla_log(LOG_ERR,"Device is disabled!");
 		break;
 
 	case SUPLA_RESULTCODE_LOCATION_DISABLED:
-		supla_log(LOG_NOTICE,"Location is disabled!");
+		supla_log(LOG_ERR,"Location is disabled!");
 		break;
 
 	case SUPLA_RESULTCODE_DEVICE_LIMITEXCEEDED:
-		supla_log(LOG_NOTICE,"Device limit exceeded!");
+		supla_log(LOG_ERR,"Device limit exceeded!");
 		break;
 
 	case SUPLA_RESULTCODE_GUID_ERROR:
-		supla_log(LOG_NOTICE,"Incorrect device GUID!");
+		supla_log(LOG_ERR,"Incorrect device GUID!");
 		break;
 
 	case SUPLA_RESULTCODE_REGISTRATION_DISABLED:
-		supla_log(LOG_NOTICE,"Registration disabled!");
+		supla_log(LOG_ERR,"Registration disabled!");
 		break;
 
 	case SUPLA_RESULTCODE_AUTHKEY_ERROR:
-		supla_log(LOG_NOTICE,"Incorrect AuthKey!");
+		supla_log(LOG_ERR,"Incorrect AuthKey!");
 		break;
 
 	case SUPLA_RESULTCODE_NO_LOCATION_AVAILABLE:
-		supla_log(LOG_NOTICE, "No location available!");
+		supla_log(LOG_ERR, "No location available!");
 		break;
 
 	case SUPLA_RESULTCODE_USER_CONFLICT:
-		supla_log(LOG_NOTICE,"User conflict!");
+		supla_log(LOG_ERR,"User conflict!");
+		break;
+
+	case SUPLA_RESULTCODE_COUNTRY_REJECTED:
+		supla_log(LOG_ERR,"Country rejected!");
+		break;
+
+	case SUPLA_RESULTCODE_TRUE:{
+		TDCS_SuplaSetActivityTimeout timeout;
+		supla_log(LOG_INFO,"[%s] registered: srv ver: %d(min=%d), activity timeout=%ds",
+				dev->name,
+				regdev_res->version,
+				regdev_res->version_min,
+				regdev_res->activity_timeout);
+
+		if(dev->supla_config.activity_timeout != regdev_res->activity_timeout){
+			supla_log(LOG_DEBUG, "Setting activity timeout to %ds", dev->supla_config.activity_timeout);
+			timeout.activity_timeout =  dev->supla_config.activity_timeout;
+			srpc_dcs_async_set_activity_timeout(dev->srpc,&timeout);
+		}
+		gettimeofday(&dev->reg_time,NULL);
+		supla_dev_set_state(dev,SUPLA_DEV_STATE_REGISTERED);
+		}break;
+
+	default:
 		break;
   }
 }
@@ -162,13 +169,13 @@ static void supla_dev_on_set_channel_group_value(supla_dev_t *dev, TSD_SuplaChan
 	srpc_ds_async_set_channel_result(dev->srpc, new_value.ChannelNumber, new_value.SenderID, success);
 }
 
-static void supla_dev_get_channel_state(supla_dev_t *dev, TCSD_ChannelStateRequest *csd_channel_state_request)
+static void supla_dev_get_channel_state(supla_dev_t *dev, TCSD_ChannelStateRequest *channel_state_request)
 {
 	TDSC_ChannelState state = {};
-	supla_log(LOG_DEBUG,"get channel[%d] state",csd_channel_state_request->ChannelNumber);
+	supla_log(LOG_DEBUG,"get channel[%d] state",channel_state_request->ChannelNumber);
 
-	state.ReceiverID = csd_channel_state_request->SenderID;
-	state.ChannelNumber = csd_channel_state_request->ChannelNumber;
+	state.ReceiverID = channel_state_request->SenderID;
+	state.ChannelNumber = channel_state_request->ChannelNumber;
 
 	/* fill internal supla device state data */
 	state.Fields = 0x00;
@@ -184,12 +191,12 @@ static void supla_dev_get_channel_state(supla_dev_t *dev, TCSD_ChannelStateReque
 	if(dev->on_get_channel_state)
 		dev->on_get_channel_state(dev,&state);
 
-	supla_channel_t *ch = supla_dev_get_channel_by_num(dev,csd_channel_state_request->ChannelNumber);
+	supla_channel_t *ch = supla_dev_get_channel_by_num(dev,channel_state_request->ChannelNumber);
 	if(ch){
 		if(ch->on_get_state)
 			ch->on_get_state(ch, &state);
 	} else {
-		supla_log(LOG_ERR,"channel[%d] not found", csd_channel_state_request->ChannelNumber);
+		supla_log(LOG_ERR,"channel[%d] not found", channel_state_request->ChannelNumber);
 	}
 	srpc_csd_async_channel_state_result(dev->srpc, &state);
 }
@@ -258,6 +265,26 @@ static void supla_dev_on_calcfg_request(supla_dev_t *dev, TSD_DeviceCalCfgReques
 	srpc_ds_async_device_calcfg_result(dev->srpc, &result);
 }
 
+
+static void supla_dev_on_get_channel_functions_result(supla_dev_t *dev, TSD_ChannelFunctions *channel_functions)
+{
+	supla_channel_t *ch;
+	supla_log(LOG_DEBUG, "Received channel functions from server");
+
+	for(int i=0; i < channel_functions->ChannelCount; i++){
+		ch = supla_dev_get_channel_by_num(dev, i);
+		if(ch){
+			supla_channel_set_functions(ch, channel_functions->Functions[i]);
+		}
+	}
+}
+
+static void supla_dev_on_get_channel_config_result(supla_dev_t *dev, TSD_ChannelConfig *channel_config)
+{
+	supla_log(LOG_DEBUG, "Received channel config from server");
+	supla_log(LOG_DEBUG, "ch_cfg->num",channel_config->ChannelNumber, channel_config->ConfigType);
+}
+
 static void supla_dev_on_remote_call_received(void *_srpc,
 		unsigned int rr_id, unsigned int call_type, void *_dcd, unsigned char proto_version)
 {
@@ -311,10 +338,10 @@ static void supla_dev_on_remote_call_received(void *_srpc,
 		supla_dev_get_channel_state(dev, rd.data.csd_channel_state_request);
 		break;
 	case SUPLA_SD_CALL_GET_CHANNEL_FUNCTIONS_RESULT:
-		supla_log(LOG_DEBUG, "Received channel functions result from server!");
+		supla_dev_on_get_channel_functions_result(dev,rd.data.sd_channel_functions);
 		break;
 	case SUPLA_SD_CALL_GET_CHANNEL_CONFIG_RESULT:
-		supla_log(LOG_DEBUG, "Received channel config result from server!");
+		supla_dev_on_get_channel_config_result(dev,rd.data.sd_channel_config);
 		break;
 	default:
 		supla_log(LOG_DEBUG, "Received unknown message from server!");
@@ -370,7 +397,7 @@ int supla_dev_free(supla_dev_t *dev)
 {
 	supla_channel_t *ch;
 
-	dev->cloud_backend->free(dev->link);
+	dev->cloud_backend->free(dev->cloud_link);
 	srpc_free(dev->srpc);
 
 	STAILQ_FOREACH(ch,&dev->channels,channels){
@@ -557,49 +584,52 @@ supla_channel_t *supla_dev_get_channel_by_num(const supla_dev_t *dev, int num)
 	return NULL;
 }
 
-int supla_dev_setup(supla_dev_t *dev,  const struct supla_config *cfg)
+int supla_dev_setup(supla_dev_t *dev,  const struct supla_config *supla_config)
 {
-	if(!dev || ! cfg)
+	const char empty_auth[SUPLA_AUTHKEY_SIZE] = {0};
+	const char empty_guid[SUPLA_GUID_SIZE] = {0};
+
+	if(!dev || !supla_config)
 		return SUPLA_RESULT_FALSE;
 
 	srpc_free(dev->srpc);
-	dev->cloud_backend->free(dev->link);
+	dev->cloud_backend->free(dev->cloud_link);
 	dev->state = SUPLA_DEV_STATE_DISCONNECTED;
 	
-	if(cfg->email[0]){
-		strncpy(dev->supla_config.email, cfg->email, SUPLA_EMAIL_MAXSIZE);
+	if(supla_config->email[0]){
+		strncpy(dev->supla_config.email, supla_config->email, SUPLA_EMAIL_MAXSIZE);
 	}else {
 		supla_log(LOG_ERR,"email not set");
 		return SUPLA_RESULT_FALSE;
 	}
 
-	if(cfg->auth_key[0]){
-		memcpy(dev->supla_config.auth_key, cfg->auth_key, SUPLA_AUTHKEY_SIZE);
+	if(memcmp(supla_config->auth_key,empty_auth,SUPLA_AUTHKEY_SIZE)){
+		memcpy(dev->supla_config.auth_key, supla_config->auth_key, SUPLA_AUTHKEY_SIZE);
 	}else {
 		supla_log(LOG_ERR,"auth key not set");
 		return SUPLA_RESULTCODE_AUTHKEY_ERROR;
 	}
 
-	if(cfg->guid[0]){
-		memcpy(dev->supla_config.guid, cfg->guid, SUPLA_GUID_SIZE);
+	if(memcmp(supla_config->guid,empty_guid,SUPLA_GUID_SIZE)){
+		memcpy(dev->supla_config.guid, supla_config->guid, SUPLA_GUID_SIZE);
 	}else {
 		supla_log(LOG_ERR,"guid not set");
 		return SUPLA_RESULTCODE_GUID_ERROR;
 	}
 
-	if(cfg->server[0]){
-		strncpy(dev->supla_config.server, cfg->server,SUPLA_SERVER_NAME_MAXSIZE);
+	if(supla_config->server[0]){
+		strncpy(dev->supla_config.server, supla_config->server,SUPLA_SERVER_NAME_MAXSIZE);
 	}else {
 		supla_log(LOG_ERR,"server not set");
 		return SUPLA_RESULT_FALSE;
 	}
 
-	dev->supla_config.ssl = cfg->ssl ? 1:0;
+	dev->supla_config.ssl = supla_config->ssl ? 1:0;
 	if(!dev->supla_config.port)
 		dev->supla_config.port = dev->supla_config.ssl ? 2016 : 2015;
 
-	if(cfg->activity_timeout)
-		dev->supla_config.activity_timeout = cfg->activity_timeout;
+	if(supla_config->activity_timeout)
+		dev->supla_config.activity_timeout = supla_config->activity_timeout;
 	else
 		dev->supla_config.activity_timeout = 120;
 
@@ -615,8 +645,8 @@ int supla_dev_setup(supla_dev_t *dev,  const struct supla_config *cfg)
 	dev->srpc = srpc_init(&srpc_params);
 	srpc_set_proto_version(dev->srpc, SUPLA_PROTO_VERSION);
 
-	dev->link = dev->cloud_backend->init(dev->supla_config.server, dev->supla_config.port, dev->supla_config.ssl);
-	if(!dev->link){
+	dev->cloud_link = dev->cloud_backend->init(dev->supla_config.server, dev->supla_config.port, dev->supla_config.ssl);
+	if(!dev->cloud_link){
 		supla_log(LOG_ERR,"Cannot create socket");
 		return SUPLA_RESULT_FALSE;
 	}
@@ -680,6 +710,17 @@ static int supla_dev_time_sync(supla_dev_t *dev)
 		return SUPLA_RESULT_FALSE;
 }
 
+static int supla_dev_get_channel_functions(supla_dev_t *dev)
+{
+	return srpc_ds_async_get_channel_functions(dev->srpc);
+}
+
+static int supla_dev_get_channel_config(supla_dev_t *dev)
+{
+	return srpc_ds_async_get_channel_config(dev->srpc, NULL); //FIXME
+}
+
+
 static void supla_dev_sync_channels_data(supla_dev_t *dev)
 {
 	supla_channel_t *ch;
@@ -713,7 +754,7 @@ int supla_dev_iterate(supla_dev_t *dev)
 			supla_log(LOG_INFO,"[%s] Connecting to: %s:%d using: %s",
 					dev->name,dev->supla_config.server,dev->supla_config.port,dev->cloud_backend->id);
 
-			if(dev->cloud_backend->connect(dev->link) == 0){
+			if(dev->cloud_backend->connect(dev->cloud_link) == 0){
 				supla_delay_ms(5000);
 				return SUPLA_RESULT_FALSE;
 			} else {
@@ -738,7 +779,8 @@ int supla_dev_iterate(supla_dev_t *dev)
 
 		case SUPLA_DEV_STATE_REGISTERED:
 			supla_dev_time_sync(dev);
-			//TODO get channels config
+			supla_dev_get_channel_functions(dev);
+			supla_dev_get_channel_config(dev);
 			supla_dev_set_state(dev,SUPLA_DEV_STATE_ONLINE);
 			break;
 

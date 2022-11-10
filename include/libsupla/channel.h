@@ -169,6 +169,16 @@ int supla_channel_deinit(supla_channel_t *ch);
  */
 int supla_channel_get_assigned_number(supla_channel_t *ch);
 
+/**
+ * @brief  Set channel functions
+ *
+ * @param[in] ch given channel
+ * @param[in] functions supported functions //SUPLA_CHANNELFNC_*
+ * @return SUPLA_RESULT_TRUE on success
+ */
+int supla_channel_set_functions(supla_channel_t *ch, _supla_int_t functions);
+
+
 int supla_channel_set_value(supla_channel_t *ch, void *value, size_t len);
 int supla_channel_set_binary_value(supla_channel_t *ch, uint8_t value);
 int supla_channel_set_double_value(supla_channel_t *ch, double value);

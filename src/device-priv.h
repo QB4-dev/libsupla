@@ -19,7 +19,7 @@ struct supla_dev {
 	char soft_ver[SUPLA_SOFTVER_MAXSIZE];
 
 	supla_cloud_backend_t *cloud_backend;
-	void *link;
+	void *cloud_link;
 	void *srpc;
 
 	supla_dev_state_t state;

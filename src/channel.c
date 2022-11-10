@@ -129,22 +129,42 @@ int supla_channel_deinit(supla_channel_t *ch)
 
 int supla_channel_get_assigned_number(supla_channel_t *ch)
 {
-	struct supla_channel_priv *priv = ch->priv;
-	if(!priv)
+	int num;
+	struct supla_channel_priv *priv;
+
+	if(!ch || !ch->priv)
 		return -1;
-	else
-		return priv->number;
+
+	priv = ch->priv;
+	lck_lock(priv->lck);
+	num = priv->number;
+	lck_unlock(priv->lck);
+	return num;
 }
 
+int supla_channel_set_functions(supla_channel_t *ch, _supla_int_t functions)
+{
+	struct supla_channel_priv *priv;
+
+	if(!ch || !ch->priv || ch->type == SUPLA_CHANNELTYPE_ACTIONTRIGGER)
+		return SUPLA_RESULT_FALSE;
+
+	priv = ch->priv;
+	lck_lock(priv->lck);
+	ch->supported_functions = functions;
+	lck_unlock(priv->lck);
+	return SUPLA_RESULT_TRUE;
+}
 
 int supla_channel_set_value(supla_channel_t *ch, void *value, size_t len)
 {
 	int rc;
-	struct supla_channel_priv *priv = ch->priv;
+	struct supla_channel_priv *priv;
 
-	if(!ch->priv || !value || !len)
+	if(!ch || !ch->priv || !value )
 		return SUPLA_RESULT_FALSE;
 
+	priv = ch->priv;
 	lck_lock(priv->lck);
 	rc = supla_val_set(priv->supla_val,value,len);
 	lck_unlock(priv->lck);
