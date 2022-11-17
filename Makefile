@@ -1,12 +1,12 @@
 LIBNAME := libsupla
 
 CC ?= gcc
-RM = rm -rf 
+RM = rm -rf
+
+NOSSL ?= 0
 
 LIBVERSION ?= $(shell cut -d'"' -f2 include/libsupla/version.h)
 LIB_SOVERSION = $(word 1,$(subst ., ,$(LIBVERSION)))
-
-NOSSL?=0
 
 SRCS += src/supla-common/cfg.c
 SRCS += src/supla-common/eh.c
@@ -56,7 +56,7 @@ LDFLAGS =
 
 .PHONY: all shared static clean install uninstall example
 
-all: shared static example
+all: shared static
 
 #static library
 $(LIB_STATIC): $(OBJS)
@@ -84,16 +84,16 @@ includes:
 shared: includes $(LIB_SHARED)
 
 static: includes $(LIB_STATIC)
-	
 
 example: shared
 	$(CC) -Wall -O2 -g example/app.c -o example_app -Iinclude -L. -lpthread -lsupla -lssl
 
-install: shared
+install: shared static
 	@mkdir -p $(INSTALL_INCLUDE_PATH)
 	cp -r include/libsupla $(INSTALL_INCLUDE_PATH)
 	@mkdir -p $(INSTALL_LIBRARY_PATH)
 	cp -a $(LIB_SHARED) $(LIB_SHARED_VERSION) $(LIB_SHARED_SO) $(INSTALL_LIBRARY_PATH)
+	cp $(LIB_STATIC) $(INSTALL_LIBRARY_PATH)
 	
 uninstall:
 	rm -rf $(INSTALL_INCLUDE_PATH)/libsupla
