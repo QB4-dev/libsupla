@@ -100,7 +100,7 @@ int main(void) {
 		exit(EXIT_FAILURE);
 	}
 	/* Setup SUPLA device using config parameters */ 
-	if(supla_dev_setup(dev,&supla_config) != SUPLA_RESULT_TRUE){
+	if(supla_dev_set_config(dev,&supla_config) != SUPLA_RESULT_TRUE){
 		supla_log(LOG_ERR,"SUPLA dev setup failed");
 		supla_dev_free(dev);
 		exit(EXIT_FAILURE);

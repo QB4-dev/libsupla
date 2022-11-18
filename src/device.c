@@ -426,6 +426,26 @@ int supla_dev_get_state(const supla_dev_t *dev, supla_dev_state_t *state)
 	return SUPLA_RESULT_TRUE;
 }
 
+const char *supla_dev_state_str(supla_dev_state_t state)
+{
+	switch (state) {
+	case SUPLA_DEV_STATE_CONFIG:
+		return "CONFIG";
+	case SUPLA_DEV_STATE_IDLE:
+		return "IDLE";
+	case SUPLA_DEV_STATE_DISCONNECTED:
+		return "DISCONNECTED";
+	case SUPLA_DEV_STATE_CONNECTED:
+		return "CONNECTED";
+	case SUPLA_DEV_STATE_REGISTERED:
+		return "REGISTERED";
+	case SUPLA_DEV_STATE_ONLINE:
+		return "ONLINE";
+	default:
+		return "UNKNOWN";
+	}
+}
+
 int supla_dev_set_flags(supla_dev_t *dev, int flags)
 {
 	if(!dev)
@@ -457,6 +477,24 @@ int supla_dev_get_manufacturer_data(const supla_dev_t *dev, struct manufacturer_
 		return SUPLA_RESULT_FALSE;
 
 	*mfr_data = dev->mfr_data;
+	return SUPLA_RESULT_TRUE;
+}
+
+int supla_dev_get_uptime(const supla_dev_t *dev, time_t *uptime)
+{
+	if(!dev || !uptime)
+		return SUPLA_RESULT_FALSE;
+
+	*uptime = dev->uptime;
+	return SUPLA_RESULT_TRUE;
+}
+
+int supla_dev_get_connection_uptime(const supla_dev_t *dev, time_t *connection_uptime)
+{
+	if(!dev || !connection_uptime)
+		return SUPLA_RESULT_FALSE;
+
+	*connection_uptime = dev->connection_uptime;
 	return SUPLA_RESULT_TRUE;
 }
 
@@ -528,14 +566,14 @@ int supla_dev_add_channel(supla_dev_t *dev, supla_channel_t *ch)
 	struct supla_channel_priv *priv = ch->priv;
 	if(!ch->priv){
 		supla_log(LOG_ERR,"[%s] cannot add channel: channel not initialized", dev->name);
-		return EPERM;
+		return SUPLA_RESULT_FALSE;
 	}
 
 	channel_count = supla_dev_get_channel_count(dev);
 
 	if(channel_count >= SUPLA_CHANNELMAXCOUNT){
 		supla_log(LOG_ERR,"[%s] cannot add channel: channel max count reached", dev->name);
-		return EPERM;
+		return SUPLA_RESULT_FALSE;
 	}
 
 	if(ch->type == SUPLA_CHANNELTYPE_ACTIONTRIGGER){
@@ -558,8 +596,7 @@ int supla_dev_add_channel(supla_dev_t *dev, supla_channel_t *ch)
 	}
 	STAILQ_INSERT_TAIL(&dev->channels,ch,channels);
 	priv->number = channel_count;
-	return 0;
-}
+	return SUPLA_RESULT_TRUE;}
 
 int supla_dev_get_channel_count(const supla_dev_t *dev)
 {
@@ -584,52 +621,52 @@ supla_channel_t *supla_dev_get_channel_by_num(const supla_dev_t *dev, int num)
 	return NULL;
 }
 
-int supla_dev_setup(supla_dev_t *dev,  const struct supla_config *supla_config)
+int supla_dev_set_config(supla_dev_t *dev, const struct supla_config *config)
 {
 	const char empty_auth[SUPLA_AUTHKEY_SIZE] = {0};
 	const char empty_guid[SUPLA_GUID_SIZE] = {0};
 
-	if(!dev || !supla_config)
+	if(!dev || !config)
 		return SUPLA_RESULT_FALSE;
 
 	srpc_free(dev->srpc);
 	dev->cloud_backend->free(dev->cloud_link);
 	dev->state = SUPLA_DEV_STATE_DISCONNECTED;
 	
-	if(supla_config->email[0]){
-		strncpy(dev->supla_config.email, supla_config->email, SUPLA_EMAIL_MAXSIZE);
+	if(config->email[0]){
+		strncpy(dev->supla_config.email, config->email, SUPLA_EMAIL_MAXSIZE);
 	}else {
 		supla_log(LOG_ERR,"email not set");
 		return SUPLA_RESULT_FALSE;
 	}
 
-	if(memcmp(supla_config->auth_key,empty_auth,SUPLA_AUTHKEY_SIZE)){
-		memcpy(dev->supla_config.auth_key, supla_config->auth_key, SUPLA_AUTHKEY_SIZE);
+	if(memcmp(config->auth_key,empty_auth,SUPLA_AUTHKEY_SIZE)){
+		memcpy(dev->supla_config.auth_key, config->auth_key, SUPLA_AUTHKEY_SIZE);
 	}else {
 		supla_log(LOG_ERR,"auth key not set");
 		return SUPLA_RESULTCODE_AUTHKEY_ERROR;
 	}
 
-	if(memcmp(supla_config->guid,empty_guid,SUPLA_GUID_SIZE)){
-		memcpy(dev->supla_config.guid, supla_config->guid, SUPLA_GUID_SIZE);
+	if(memcmp(config->guid,empty_guid,SUPLA_GUID_SIZE)){
+		memcpy(dev->supla_config.guid, config->guid, SUPLA_GUID_SIZE);
 	}else {
 		supla_log(LOG_ERR,"guid not set");
 		return SUPLA_RESULTCODE_GUID_ERROR;
 	}
 
-	if(supla_config->server[0]){
-		strncpy(dev->supla_config.server, supla_config->server,SUPLA_SERVER_NAME_MAXSIZE);
+	if(config->server[0]){
+		strncpy(dev->supla_config.server, config->server,SUPLA_SERVER_NAME_MAXSIZE);
 	}else {
 		supla_log(LOG_ERR,"server not set");
 		return SUPLA_RESULT_FALSE;
 	}
 
-	dev->supla_config.ssl = supla_config->ssl ? 1:0;
+	dev->supla_config.ssl = config->ssl ? 1:0;
 	if(!dev->supla_config.port)
 		dev->supla_config.port = dev->supla_config.ssl ? 2016 : 2015;
 
-	if(supla_config->activity_timeout)
-		dev->supla_config.activity_timeout = supla_config->activity_timeout;
+	if(config->activity_timeout)
+		dev->supla_config.activity_timeout = config->activity_timeout;
 	else
 		dev->supla_config.activity_timeout = 120;
 
@@ -651,6 +688,15 @@ int supla_dev_setup(supla_dev_t *dev,  const struct supla_config *supla_config)
 		return SUPLA_RESULT_FALSE;
 	}
 	supla_log(LOG_INFO,"Device [%s] setup completed", dev->name);
+	return SUPLA_RESULT_TRUE;
+}
+
+int supla_dev_get_config(supla_dev_t *dev, struct supla_config *config)
+{
+	if(!dev || !config)
+		return SUPLA_RESULT_FALSE;
+
+	*config = dev->supla_config;
 	return SUPLA_RESULT_TRUE;
 }
 

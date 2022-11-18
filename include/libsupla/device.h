@@ -30,7 +30,7 @@ extern "C" {
  *
  * supla_dev_t *dev = supla_dev_create("Test Device",NULL);
  *
- * supla_dev_setup(dev,&supla_config);
+ * supla_dev_set_config(dev,&supla_config);
  * supla_dev_add_channel(dev,&temp_channel);
  * supla_dev_add_channel(dev,&wind_channel);
  *
@@ -163,6 +163,14 @@ const char *supla_dev_get_software_version(const supla_dev_t *dev);
 int supla_dev_get_state(const supla_dev_t *dev, supla_dev_state_t *state);
 
 /**
+ * @brief Get SUPLA device state string
+ *
+ * @param[in] state SUPLA device state
+ * @return state string
+ */
+const char *supla_dev_state_str(supla_dev_state_t state);
+
+/**
  * @brief Set SUPLA device flags
  *
  * @param[in] dev SUPLA device instance
@@ -198,6 +206,24 @@ int supla_dev_set_manufacturer_data(supla_dev_t *dev, const struct manufacturer_
  * @return SUPLA_RESULT_TRUE on success
  */
 int supla_dev_get_manufacturer_data(const supla_dev_t *dev, struct manufacturer_data *mfr_data);
+
+/**
+ * @brief Get SUPLA device uptime
+ *
+ * @param[in] dev SUPLA device instance
+ * @param[out] uptime SUPLA device uptime
+ * @return SUPLA_RESULT_TRUE on success
+ */
+int supla_dev_get_uptime(const supla_dev_t *dev, time_t *uptime);
+
+/**
+ * @brief Get SUPLA device cloud connection uptime
+ *
+ * @param[in] dev SUPLA device instance
+ * @param[out] connection_uptime SUPLA device loud connection uptime
+ * @return SUPLA_RESULT_TRUE on success
+ */
+int supla_dev_get_connection_uptime(const supla_dev_t *dev, time_t *connection_uptime);
 
 /**
  * @brief Set on device state change callback function
@@ -242,7 +268,7 @@ int supla_dev_set_cloud_backend(supla_dev_t *dev, supla_cloud_backend_t *backend
  *
  * @param[in] dev SUPLA device instance
  * @param[in] ch channel to add
- * @return 0 on success or error number
+ * @return SUPLA_RESULT_TRUE on success or error number
  */
 int supla_dev_add_channel(supla_dev_t *dev, supla_channel_t *ch);
 
@@ -264,13 +290,22 @@ int supla_dev_get_channel_count(const supla_dev_t *dev);
 supla_channel_t *supla_dev_get_channel_by_num(const supla_dev_t *dev, int num);
 
 /**
- * @brief Setup SUPLA device
+ * @brief Set SUPLA device connection config
  *
  * @param[in] dev SUPLA device instance
- * @param[in] cfg SUPLA connection config
+ * @param[in] config SUPLA connection config
  * @return SUPLA_RESULT_TRUE on success
  */
-int supla_dev_setup(supla_dev_t *dev, const struct supla_config *cfg);
+int supla_dev_set_config(supla_dev_t *dev, const struct supla_config *config);
+
+/**
+ * @brief Get SUPLA device connection config
+ *
+ * @param[in] dev SUPLA device instance
+ * @param[out] config SUPLA connection config
+ * @return SUPLA_RESULT_TRUE on success
+ */
+int supla_dev_get_config(supla_dev_t *dev, struct supla_config *config);
 
 /**
  * @brief Start SUPLA device activity if is offline
