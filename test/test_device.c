@@ -2,7 +2,7 @@
 
 #include "unity.h"
 
-#include "device.h"
+#include <libsupla/device.h>
 
 static supla_dev_t *dev;
 

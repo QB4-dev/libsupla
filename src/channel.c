@@ -10,23 +10,32 @@
 
 #include "channel-priv.h"
 
+#define CHECK_CHANNEL(ch) do { if (!(ch) || (!ch->priv) ) return SUPLA_RESULT_FALSE; } while (0)
+#define CHECK_ARG(VAL) do { if (!(VAL)) return SUPLA_RESULT_FALSE; } while (0)
+
 int supla_channel_init(supla_channel_t* ch)
 {
 	struct supla_channel_priv *priv;
 	if(!ch)
-		return EINVAL;
+		return SUPLA_RESULT_FALSE;
 
 	//TODO verify channel type and functions
 
 	if(ch->priv)
-		return EPERM; //already initialized
+		return SUPLA_RESULT_TRUE; //already initialized
 
 	ch->priv = calloc(1, sizeof(struct supla_channel_priv));
 	if(ch->priv == NULL)
-		return ENOMEM;
+		return SUPLA_RESULT_FALSE;
 
 	priv = ch->priv;
 	priv->lck = lck_init();
+	priv->number = -1;
+	priv->active_function = ch->default_function;
+
+	/* set SUPLA_CHANNEL_FLAG_CHANNELSTATE if on_get_state callback function is set*/
+	if(ch->on_get_state)
+		ch->flags |= SUPLA_CHANNEL_FLAG_CHANNELSTATE;
 
 	switch(ch->type){
 	case SUPLA_CHANNELTYPE_SENSORNO:
@@ -89,12 +98,7 @@ int supla_channel_init(supla_channel_t* ch)
 	default:
 		break;
 	}
-
-	/* set SUPLA_CHANNEL_FLAG_CHANNELSTATE if on_get_state callback function is set*/
-	if(ch->on_get_state)
-		ch->flags |= SUPLA_CHANNEL_FLAG_CHANNELSTATE;
-
-	return 0;
+	return SUPLA_RESULT_TRUE;
 
 malloc_failed:
 	lck_free(priv->lck);
@@ -108,15 +112,14 @@ malloc_failed:
 	free(priv->action_trigger);
 
 	free(priv);
-	return ENOMEM;
+	return SUPLA_RESULT_FALSE;
 }
 
 
 int supla_channel_deinit(supla_channel_t *ch)
 {
+	CHECK_CHANNEL(ch);
 	struct supla_channel_priv *priv = ch->priv;
-	if(priv == NULL)
-		return 0;
 
 	lck_free(priv->lck);
 	free(priv->supla_val);
@@ -124,7 +127,7 @@ int supla_channel_deinit(supla_channel_t *ch)
 	free(priv->action_trigger);
 	free(priv);
 	ch->priv = NULL;
-	return 0;
+	return SUPLA_RESULT_TRUE;
 }
 
 int supla_channel_get_assigned_number(supla_channel_t *ch)
@@ -142,16 +145,15 @@ int supla_channel_get_assigned_number(supla_channel_t *ch)
 	return num;
 }
 
-int supla_channel_set_functions(supla_channel_t *ch, _supla_int_t functions)
+int supla_channel_get_active_function(supla_channel_t *ch, int *function)
 {
-	struct supla_channel_priv *priv;
-
-	if(!ch || !ch->priv || ch->type == SUPLA_CHANNELTYPE_ACTIONTRIGGER)
-		return SUPLA_RESULT_FALSE;
+	CHECK_CHANNEL(ch);
+	CHECK_ARG(function);
+	struct supla_channel_priv *priv = ch->priv;
 
 	priv = ch->priv;
 	lck_lock(priv->lck);
-	ch->supported_functions = functions;
+	*function = priv->active_function;
 	lck_unlock(priv->lck);
 	return SUPLA_RESULT_TRUE;
 }
@@ -159,10 +161,10 @@ int supla_channel_set_functions(supla_channel_t *ch, _supla_int_t functions)
 int supla_channel_set_value(supla_channel_t *ch, void *value, size_t len)
 {
 	int rc;
-	struct supla_channel_priv *priv;
 
-	if(!ch || !ch->priv || !value )
-		return SUPLA_RESULT_FALSE;
+	CHECK_CHANNEL(ch);
+	CHECK_ARG(value);
+	struct supla_channel_priv *priv = ch->priv;
 
 	priv = ch->priv;
 	lck_lock(priv->lck);
@@ -260,10 +262,10 @@ int supla_channel_set_thermostat_value(supla_channel_t *ch, TThermostat_Value *t
 int supla_channel_set_extval(supla_channel_t *ch, TSuplaChannelExtendedValue *extval)
 {
 	int rc;
-	struct supla_channel_priv *priv = ch->priv;
 
-	if(!ch->priv || !extval)
-		return SUPLA_RESULT_FALSE;
+	CHECK_CHANNEL(ch);
+	CHECK_ARG(extval);
+	struct supla_channel_priv *priv = ch->priv;
 
 	lck_lock(priv->lck);
 	rc = supla_extval_set(priv->supla_extval,extval);
@@ -273,7 +275,10 @@ int supla_channel_set_extval(supla_channel_t *ch, TSuplaChannelExtendedValue *ex
 
 int supla_channel_set_electricity_meter_extvalue(supla_channel_t *ch, TElectricityMeter_ExtendedValue_V2 *emx)
 {
+	CHECK_CHANNEL(ch);
+	CHECK_ARG(emx);
 	struct supla_channel_priv *priv = ch->priv;
+
 	if(ch->type != SUPLA_CHANNELTYPE_ELECTRICITY_METER){
 		supla_log(LOG_ERR,"ch[%d] cannot set electricity meter extvalue: bad channel type",priv->number);
 		return SUPLA_RESULTCODE_CHANNEL_CONFLICT;
@@ -286,7 +291,10 @@ int supla_channel_set_electricity_meter_extvalue(supla_channel_t *ch, TElectrici
 
 int supla_channel_set_thermostat_extvalue(supla_channel_t *ch, TThermostat_ExtendedValue *thex)
 {
+	CHECK_CHANNEL(ch);
+	CHECK_ARG(thex);
 	struct supla_channel_priv *priv = ch->priv;
+
 	if(ch->type != SUPLA_CHANNELTYPE_THERMOSTAT){
 		supla_log(LOG_ERR,"ch[%d] cannot set thermostat extvalue: bad channel type",priv->number);
 		return SUPLA_RESULTCODE_CHANNEL_CONFLICT;
@@ -301,10 +309,15 @@ int supla_channel_set_thermostat_extvalue(supla_channel_t *ch, TThermostat_Exten
 int supla_channel_emit_action(supla_channel_t *ch, const _supla_int_t action)
 {
 	int rc;
+
+	CHECK_CHANNEL(ch);
+	CHECK_ARG(action);
 	struct supla_channel_priv *priv = ch->priv;
 
-	if(!ch->priv)
-		return EINVAL;
+	if(ch->type != SUPLA_CHANNELTYPE_ACTIONTRIGGER){
+		supla_log(LOG_ERR,"ch[%d] cannot emit action: bad channel type",priv->number);
+		return SUPLA_RESULTCODE_CHANNEL_CONFLICT;
+	}
 
 	lck_lock(priv->lck);
 	rc = supla_action_trigger_emit(priv->action_trigger,priv->number,action);
@@ -335,6 +348,20 @@ TDS_SuplaDeviceChannel_C supla_channel_to_register_struct(supla_channel_t *ch)
 	return reg_channel;
 }
 
+int supla_channel_set_active_function(supla_channel_t *ch, int function)
+{
+	CHECK_CHANNEL(ch);
+	struct supla_channel_priv *priv = ch->priv;
+
+	if(ch->type == SUPLA_CHANNELTYPE_ACTIONTRIGGER)
+		return SUPLA_RESULT_FALSE;
+
+	lck_lock(priv->lck);
+	priv->active_function = function;
+	lck_unlock(priv->lck);
+	return SUPLA_RESULT_TRUE;
+}
+
 void supla_channel_sync(void *srpc, supla_channel_t *ch)
 {
 	struct supla_channel_priv *priv = ch->priv;
@@ -342,10 +369,9 @@ void supla_channel_sync(void *srpc, supla_channel_t *ch)
 	lck_lock(priv->lck);
 	if(priv->supla_val && !priv->supla_val->sync){
 		supla_log(LOG_DEBUG,"sync channel[%d] val ",priv->number);
-
 		priv->supla_val->sync = srpc_ds_async_channel_value_changed_c(
 				srpc,priv->number,priv->supla_val->data.value,0,ch->validity_time_sec);
-		//TODO online flag and validity time
+		//TODO support offline flag
 	}
 
 	if(priv->supla_extval && !priv->supla_extval->sync){

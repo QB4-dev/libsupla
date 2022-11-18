@@ -119,17 +119,20 @@ typedef int (*supla_channel_get_state_handler_t)(supla_channel_t *ch, TDSC_Chann
  */
 typedef int (*supla_channel_set_calcfg_handler_t)(supla_channel_t *ch, TSD_DeviceCalCfgRequest *calcfg);
 
+/**
+ * SUPLA channel structure
+ */
 struct supla_channel {
 	int type;                                                     //SUPLA_CHANNELTYPE_*
 	union {
 		struct {
-			unsigned _supla_int_t supported_functions;            //SUPLA_CHANNELFNC_*
+			unsigned int supported_functions;                     //SUPLA_CHANNELFNC_*
 			char sync_values_onchange;                            //sync values with server only when changed
 			int validity_time_sec;                                //measurement validity time for offline sensors
 		};
 		struct {
-			unsigned _supla_int_t action_trigger_caps;            //SUPLA_ACTION_CAP_*
-			unsigned _supla_int_t action_trigger_conflicts;       //SUPLA_ACTION_CAP_*
+			unsigned int action_trigger_caps;                     //SUPLA_ACTION_CAP_*
+			unsigned int action_trigger_conflicts;                //SUPLA_ACTION_CAP_*
 			struct supla_channel *action_trigger_related_channel; //related channel for action trigger
 		};
 	};
@@ -149,7 +152,7 @@ struct supla_channel {
  * @brief  Initialize SUPLA channel - allocate channel private data
  *
  * @param[in] ch given channel
- * @return 0 on success or error number
+ * @return SUPLA_RESULT_TRUE on success
  */
 int supla_channel_init(supla_channel_t* ch);
 
@@ -157,7 +160,7 @@ int supla_channel_init(supla_channel_t* ch);
  * @brief  Deinitialize SUPLA channel - free allocated memory
  *
  * @param[in] ch given channel
- * @return 0 on success or error number
+ * @return SUPLA_RESULT_TRUE on success
  */
 int supla_channel_deinit(supla_channel_t *ch);
 
@@ -170,13 +173,13 @@ int supla_channel_deinit(supla_channel_t *ch);
 int supla_channel_get_assigned_number(supla_channel_t *ch);
 
 /**
- * @brief  Set channel functions
+ * @brief  Get channel active function
  *
  * @param[in] ch given channel
- * @param[in] functions supported functions //SUPLA_CHANNELFNC_*
+ * @param[in] function active channel function //SUPLA_CHANNELFNC_*
  * @return SUPLA_RESULT_TRUE on success
  */
-int supla_channel_set_functions(supla_channel_t *ch, _supla_int_t functions);
+int supla_channel_get_active_function(supla_channel_t *ch, int *function);
 
 
 int supla_channel_set_value(supla_channel_t *ch, void *value, size_t len);

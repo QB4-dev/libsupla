@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
-#include "port/arch.h"
 #include "port/util.h"
 #include "port/net.h"
 
@@ -274,7 +273,8 @@ static void supla_dev_on_get_channel_functions_result(supla_dev_t *dev, TSD_Chan
 	for(int i=0; i < channel_functions->ChannelCount; i++){
 		ch = supla_dev_get_channel_by_num(dev, i);
 		if(ch){
-			supla_channel_set_functions(ch, channel_functions->Functions[i]);
+			supla_log(LOG_DEBUG, "ch[%d] active function = %d",i,channel_functions->Functions[i]);
+			supla_channel_set_active_function(ch, channel_functions->Functions[i]);
 		}
 	}
 }

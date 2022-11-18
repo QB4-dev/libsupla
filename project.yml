@@ -25,6 +25,7 @@
 #  :use_assembly: FALSE
 
 :environment:
+    - :ld_library_path: . 
 
 :extension:
   :executable: .out
@@ -35,8 +36,8 @@
   :source:
     - src/**
   :support:
-  :include: ["/usr/include/libsupla"]
-  :libraries: []
+  :include: ["include"]
+  :libraries: ["."]
 
 :defines:
   # in order to add common defines:
@@ -86,7 +87,7 @@
 :libraries:
   :placement: :end
   :flag: "-l${1}"
-  :path_flag: "-L ${1}"
+  :path_flag: "-L${1}"
   :system: ["supla","ssl"]    # for example, you might list 'm' to grab the math library
   :test: []
   :release: []
