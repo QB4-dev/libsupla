@@ -13,7 +13,8 @@ and has less dependencies.
 
 This library has been tested on following platforms:
 - Linux
-- ESP8266 currently without SSL/TLS support 
+- ESP8266 as [RTOS-SDK Component](https://github.com/QB4-dev/esp-libsupla) (currently without SSL/TLS)
+- ESP32   as [ESP-IDF Component](https://github.com/QB4-dev/esp-libsupla)  (currently without SSL/TLS)
 
 ## Getting started
 
@@ -35,14 +36,14 @@ and to install library:
 sudo make install
 ```
 
-From now you can start to write your own software connected with [SUPLA](https://www.supla.org)!
+From now you can start to write your own software connected with [SUPLA](https://www.supla.org)
 Just add to your C code:
 
 ```
 #include <libsupla/device.h>
 ```
 
-and also add linker flag `-lsupla`  and `-lssl` if compiled without `NOSSL=1` flag
+and add linker flag `-lsupla`  and `-lssl` if compiled without `NOSSL=1` flag
 
 ## The basics
 
@@ -55,7 +56,7 @@ supla_dev_t *dev = supla_dev_create("Test Device",NULL);
 
 ```
 
-Then we need supla connection config like:
+Then we need SUPLA Cloud connection config like:
 
 ```
 static struct supla_config supla_config = {
@@ -76,12 +77,12 @@ You must have supla account registered with email address and to quick start gen
 SUPLA device must be configured before first connection:
 
 ```
-supla_dev_setup(dev,&supla_config);
+supla_dev_set_config(dev,&supla_config);
 ```
 
 ### Channels
 
-SUPLA device needs channels. We can start from the most basic thermometer channel:
+SUPLA device uses channels. We can start from the most basic thermometer channel:
 
 ```
 supla_channel_t temp_channel = {
