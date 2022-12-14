@@ -9,13 +9,11 @@
 
 #include "arch.h"
 
-//typedef void* supla_link_t;
+typedef void* supla_link_t;
 
-void *supla_link_init(const char host[], int port, unsigned char secure);
-int supla_link_connect(void *link);
-int supla_link_read(void *link, void *buf, int count);
-int supla_link_write(void *link, void *buf, int count);
-void supla_link_close(void *link);
-void supla_link_free(void *link);
+int supla_cloud_connect(supla_link_t *link, const char *host, int port, unsigned char ssl);
+int supla_cloud_send(supla_link_t link, void *buf, int count);
+int supla_cloud_recv(supla_link_t link, void *buf, int count);
+int supla_cloud_disconnect(supla_link_t *link);
 
 #endif /* SRC_PORT_NET_H_ */

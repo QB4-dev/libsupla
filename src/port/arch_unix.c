@@ -4,154 +4,144 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
+#include "util.h"
 #include "net.h"
 
 #if (LIBSUPLA_ARCH == LIBSUPLA_ARCH_UNIX)
 
+int supla_delay_ms(const unsigned int ms)
+{
+	return usleep(ms * 1000);
+}
+
 #ifndef NOSSL
 #include "../supla-common/supla-socket.h"
 
-void *supla_link_init(const char host[], int port, unsigned char secure)
+int supla_cloud_connect(supla_link_t *link, const char *host, int port, unsigned char ssl)
 {
-	return ssocket_client_init(host,port,secure);
+	*link = ssocket_client_init(host,port,ssl);
+	return ssocket_client_connect(*link,NULL,NULL);
 }
 
-int supla_link_connect(void *link)
-{
-	return ssocket_client_connect(link,NULL,NULL);
-}
-
-int supla_link_read(void *link, void *buf, int count)
-{
-	return ssocket_read(link,NULL,buf,count);
-}
-
-int supla_link_write(void *link, void *buf, int count)
+int supla_cloud_send(supla_link_t link, void *buf, int count)
 {
 	return ssocket_write(link,NULL,buf,count);
 }
 
-void supla_link_close(void *link)
+int supla_cloud_recv(supla_link_t link, void *buf, int count)
 {
-	return ssocket_close(link);
+	return ssocket_read(link,NULL,buf,count);
 }
 
-void supla_link_free(void *link)
+int supla_cloud_disconnect(supla_link_t *link)
 {
-	return ssocket_free(link);
+	if(!link)
+		return EINVAL;
+
+	ssocket_free(*link);
+	*link = 0;
+	return 0;
 }
 
 #else
 
 typedef struct {
-	int port;
-	char *host;
 	int sfd;
-} backend_data_t;
+} socket_data_t;
 
-void *supla_link_init(const char host[], int port, unsigned char secure)
+int supla_cloud_connect(supla_link_t *link, const char *host, int port, unsigned char ssl)
 {
-	backend_data_t *ssd = malloc(sizeof(backend_data_t));
+	struct addrinfo hints;
+	struct addrinfo *result, *rp = NULL;
+	int rc;
+
+	socket_data_t *ssd = malloc(sizeof(socket_data_t));
 	if(!ssd)
-		return NULL;
+		return SUPLA_RESULT_FALSE;
 
-	memset(ssd, 0, sizeof(backend_data_t));
-	if(secure){
-		supla_log(LOG_WARNING,"WARNING: basic SUPLA Cloud backend doesn't support encryption");
-		port = (!port || port == 2016) ? 2015 : port; //switch to unencrypted port
-	}
-
-	ssd->port = port;
+	memset(ssd, 0, sizeof(socket_data_t));
 	ssd->sfd = -1;
-	if(host)
-		ssd->host = strdup(host);
 
-	return ssd;
-}
-
-void supla_link_close(void *ssd)
-{
-	backend_data_t *socket_data = ssd;
-	if(socket_data->sfd != -1){
-		close(socket_data->sfd);
-		socket_data->sfd = -1;
-	}
-}
-
-void supla_link_free(void *ssd)
-{
-	backend_data_t *socket_data = ssd;
-	if(socket_data){
-		supla_link_close(ssd);
-		free(socket_data->host);
-		socket_data->host = NULL;
-		free(ssd);
-	}
-}
-
-int supla_link_connect(void *ssd)
-{
-	backend_data_t *socket_data = ssd;
-	supla_link_close(ssd);
-
-	struct in6_addr serveraddr;
-	struct addrinfo hints, *res = NULL;
+	*link = ssd;
 
 	memset(&hints, 0, sizeof(hints));
-	hints.ai_flags = AI_NUMERICSERV;
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_NUMERICSERV;
 
-	socket_data->sfd = -1;
-	char port[15];
-	snprintf(port, sizeof(port), "%i", socket_data->port);
-
-	char empty[] = "";
-	char *server = empty;
-
-	if(socket_data->host != NULL && strnlen(socket_data->host,1024) > 0) {
-		server = socket_data->host;
+	// Address resolution.
+	rc = getaddrinfo(host, NULL, &hints, &result);
+	if(rc != 0){
+		free(ssd);
+		return rc;
 	}
 
-	if (inet_pton(AF_INET, server, &serveraddr) == 1) {
-		hints.ai_family = AF_INET;
-		hints.ai_flags |= AI_NUMERICHOST;
-	} else if (inet_pton(AF_INET6, server, &serveraddr) == 1) {
-		hints.ai_family = AF_INET6;
-		hints.ai_flags |= AI_NUMERICHOST;
-	}
+	for (rp = result; rp != NULL; rp = rp->ai_next) {
+		ssd->sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+		if(ssd->sfd == -1)
+			continue;
 
-	if (getaddrinfo(server, port, &hints, &res) != 0)
-		return -1;
+		switch (rp->ai_family) {
+		  case AF_INET6:
+			((struct sockaddr_in6*)(rp->ai_addr))->sin6_port = htons(port);
+			break;
+		  case AF_INET:
+			((struct sockaddr_in*)(rp->ai_addr))->sin_port = htons(port);
+			break;
+		  default:
+			free(ssd);
+			return SUPLA_RESULT_FALSE;
+		}
 
-	socket_data->sfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-	if(socket_data->sfd == -1){
-		freeaddrinfo(res);
-		return -1;
+		// Attempt to connect.
+		rc = connect(ssd->sfd, rp->ai_addr, rp->ai_addrlen);
+		if(rc != -1 ) {
+			freeaddrinfo(result);
+			return SUPLA_RESULT_TRUE;
+		} else {
+			if(errno == EINPROGRESS) {
+				freeaddrinfo(result);
+				return SUPLA_RESULT_TRUE;
+			} else {
+				close(ssd->sfd);
+			}
+		}
 	}
-
-	if(connect(socket_data->sfd, res->ai_addr, res->ai_addrlen) != 0) {
-		close(socket_data->sfd);
-		socket_data->sfd = -1;
-		freeaddrinfo(res);
-		return -1;
-	}
-	freeaddrinfo(res);
-	return 1;
+	freeaddrinfo(result);
+	free(ssd);
+	return SUPLA_RESULT_FALSE;
 }
 
-int supla_link_read(void *ssd, void *buf, int count)
+int supla_cloud_send(supla_link_t link, void *buf, int count)
 {
-	backend_data_t *socket_data = ssd;
+	socket_data_t *ssd = link;
+	return send(ssd->sfd, buf, count, MSG_NOSIGNAL);
+}
+
+int supla_cloud_recv(supla_link_t link, void *buf, int count)
+{
+	socket_data_t *socket_data = link;
 	return recv(socket_data->sfd, buf, count, MSG_DONTWAIT);
 }
 
-int supla_link_write(void *ssd, void *buf, int count)
+int supla_cloud_disconnect(supla_link_t *link)
 {
-	backend_data_t *socket_data = ssd;
-	return send(socket_data->sfd, buf, count, MSG_NOSIGNAL);
+	if(!link)
+		return EINVAL;
+
+	socket_data_t *ssd = *link;
+	if(!ssd)
+		return EINVAL;
+
+	if(ssd->sfd != -1){
+		shutdown(ssd->sfd, SHUT_RDWR);
+		close(ssd->sfd);
+	}
+	free(ssd);
+	return 0;
 }
-#endif
+
+#endif //NOSSL
 
 #endif
 

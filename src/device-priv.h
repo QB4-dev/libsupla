@@ -23,7 +23,7 @@ struct supla_dev {
 	supla_dev_state_t state;
 	struct supla_config supla_config;
 
-	void *cloud_link;
+	supla_link_t cloud_link;
 	void *srpc;
 
 	on_change_state_callback_t on_state_change;

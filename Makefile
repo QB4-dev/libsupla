@@ -17,14 +17,14 @@ SRCS += src/supla-common/proto.c
 SRCS += src/supla-common/srpc.c
 SRCS += src/supla-common/tools.c
 SRCS += src/supla-common/supla-socket.c
-SRCS += src/port/util.c
-SRCS += src/port/arch_unix.c
-SRCS += src/port/arch_esp.c
+
 SRCS += src/device.c
 SRCS += src/channel.c
 SRCS += src/supla-value.c
 SRCS += src/supla-extvalue.c
 SRCS += src/supla-action-trigger.c
+#FIXME arch dependent
+SRCS += src/port/arch_unix.c
 
 OBJS = $(SRCS:.c=.o)
 

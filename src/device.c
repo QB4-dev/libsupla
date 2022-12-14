@@ -13,13 +13,13 @@
 static int supla_dev_read(void *buf, int count, void *dcd)
 {
 	supla_dev_t *dev = dcd;
-	return supla_link_read(dev->cloud_link, buf, count);
+	return supla_cloud_recv(dev->cloud_link, buf, count);
 }
 
 static int supla_dev_write(void *buf, int count, void *dcd)
 {
 	supla_dev_t *dev = dcd;
-	return supla_link_write(dev->cloud_link, buf, count);
+	return supla_cloud_send(dev->cloud_link, buf, count);
 }
 
 static void supla_dev_set_state(supla_dev_t *dev, supla_dev_state_t new_state)
@@ -397,7 +397,7 @@ int supla_dev_free(supla_dev_t *dev)
 {
 	supla_channel_t *ch;
 
-	supla_link_free(dev->cloud_link);
+	supla_cloud_disconnect(&dev->cloud_link);
 	srpc_free(dev->srpc);
 
 	STAILQ_FOREACH(ch,&dev->channels,channels){
@@ -727,15 +727,8 @@ int supla_dev_iterate(supla_dev_t *dev)
 			memset(&dev->last_resp,0,sizeof(dev->last_resp));
 
 			supla_log(LOG_INFO,"[%s] Connecting to: %s:%d", dev->name,dev->supla_config.server,dev->supla_config.port);
-
-			supla_link_free(dev->cloud_link);
-			dev->cloud_link = supla_link_init(dev->supla_config.server, dev->supla_config.port, dev->supla_config.ssl);
-			if(!dev->cloud_link){
-				supla_log(LOG_ERR,"Cannot create socket");
-				return SUPLA_RESULT_FALSE;
-			}
-
-			if(supla_link_connect(dev->cloud_link) == 0){
+			supla_cloud_disconnect(&dev->cloud_link);
+			if(!supla_cloud_connect(&dev->cloud_link,dev->supla_config.server, dev->supla_config.port, dev->supla_config.ssl)){
 				supla_delay_ms(5000);
 				return SUPLA_RESULT_FALSE;
 			} else {
