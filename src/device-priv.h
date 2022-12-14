@@ -17,16 +17,15 @@ extern "C" {
 struct supla_dev {
 	char name[SUPLA_DEVICE_NAME_MAXSIZE];
 	char soft_ver[SUPLA_SOFTVER_MAXSIZE];
+	struct manufacturer_data mfr_data;
+	int flags; //SUPLA_DEVICE_FLAG_*
+
+	supla_dev_state_t state;
+	struct supla_config supla_config;
 
 	supla_cloud_backend_t *cloud_backend;
 	void *cloud_link;
 	void *srpc;
-
-	supla_dev_state_t state;
-	struct supla_config supla_config;
-	int flags; //SUPLA_DEVICE_FLAG_*
-
-	struct manufacturer_data mfr_data;
 
 	on_change_state_callback_t on_state_change;
 	supla_device_get_state_handler_t on_get_channel_state;

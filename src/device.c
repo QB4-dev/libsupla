@@ -10,11 +10,6 @@
 #include "device-priv.h"
 #include "channel-priv.h"
 
-static int supla_dev_initialized(supla_dev_t *dev)
-{
-	return (dev->cloud_backend && dev->cloud_link && dev->srpc);
-}
-
 static int supla_dev_read(void *buf, int count, void *dcd)
 {
 	supla_dev_t *dev = dcd;
@@ -381,7 +376,18 @@ supla_dev_t* supla_dev_create(const char *dev_name, const char *soft_ver)
 	else
 		strncpy(dev->soft_ver,"libsupla "LIBSUPLA_VER,SUPLA_SOFTVER_MAXSIZE-1);
 
+	dev->state = SUPLA_DEV_STATE_DISCONNECTED;
 	dev->cloud_backend = &default_cloud_backend;
+
+	TsrpcParams srpc_params;
+	srpc_params_init(&srpc_params);
+
+	srpc_params.data_read = supla_dev_read;
+	srpc_params.data_write = supla_dev_write;
+	srpc_params.on_remote_call_received = supla_dev_on_remote_call_received;
+	srpc_params.user_params = dev;
+
+	dev->srpc = srpc_init(&srpc_params);
 
 	gettimeofday(&dev->init_time,NULL);
 	STAILQ_INIT(&dev->channels);
@@ -623,65 +629,35 @@ int supla_dev_set_config(supla_dev_t *dev, const struct supla_config *config)
 
 	if(!dev || !config)
 		return SUPLA_RESULT_FALSE;
-
-	srpc_free(dev->srpc);
-	dev->cloud_backend->free(dev->cloud_link);
-	dev->state = SUPLA_DEV_STATE_DISCONNECTED;
 	
-	if(config->email[0]){
-		strncpy(dev->supla_config.email, config->email, SUPLA_EMAIL_MAXSIZE);
-	}else {
+	if(config->email[0] == 0){
 		supla_log(LOG_ERR,"email not set");
 		return SUPLA_RESULT_FALSE;
 	}
 
-	if(memcmp(config->auth_key,empty_auth,SUPLA_AUTHKEY_SIZE)){
-		memcpy(dev->supla_config.auth_key, config->auth_key, SUPLA_AUTHKEY_SIZE);
-	}else {
-		supla_log(LOG_ERR,"auth key not set");
-		return SUPLA_RESULTCODE_AUTHKEY_ERROR;
-	}
-
-	if(memcmp(config->guid,empty_guid,SUPLA_GUID_SIZE)){
-		memcpy(dev->supla_config.guid, config->guid, SUPLA_GUID_SIZE);
-	}else {
-		supla_log(LOG_ERR,"guid not set");
-		return SUPLA_RESULTCODE_GUID_ERROR;
-	}
-
-	if(config->server[0]){
-		strncpy(dev->supla_config.server, config->server,SUPLA_SERVER_NAME_MAXSIZE);
-	}else {
+	if(config->server[0] == 0){
 		supla_log(LOG_ERR,"server not set");
 		return SUPLA_RESULT_FALSE;
 	}
 
-	dev->supla_config.ssl = config->ssl ? 1:0;
+	if(memcmp(config->auth_key,empty_auth,SUPLA_AUTHKEY_SIZE) == 0){
+		supla_log(LOG_ERR,"auth key not set");
+		return SUPLA_RESULTCODE_AUTHKEY_ERROR;
+	}
+
+	if(memcmp(config->guid,empty_guid,SUPLA_GUID_SIZE) == 0){
+		supla_log(LOG_ERR,"guid not set");
+		return SUPLA_RESULTCODE_GUID_ERROR;
+	}
+
+	dev->supla_config = *config;
+
 	if(!dev->supla_config.port)
 		dev->supla_config.port = dev->supla_config.ssl ? 2016 : 2015;
 
-	if(config->activity_timeout)
-		dev->supla_config.activity_timeout = config->activity_timeout;
-	else
+	if(!dev->supla_config.activity_timeout)
 		dev->supla_config.activity_timeout = 120;
 
-	TsrpcParams srpc_params;
-	srpc_params_init(&srpc_params);
-
-	srpc_params.data_read = supla_dev_read;
-	srpc_params.data_write = supla_dev_write;
-	srpc_params.on_remote_call_received = supla_dev_on_remote_call_received;
-	srpc_params.user_params = dev;
-
-	dev->srpc = srpc_init(&srpc_params);
-	srpc_set_proto_version(dev->srpc, SUPLA_PROTO_VERSION);
-
-	dev->cloud_link = dev->cloud_backend->init(dev->supla_config.server, dev->supla_config.port, dev->supla_config.ssl);
-	if(!dev->cloud_link){
-		supla_log(LOG_ERR,"Cannot create socket");
-		return SUPLA_RESULT_FALSE;
-	}
-	supla_log(LOG_INFO,"Device [%s] setup completed", dev->name);
 	return SUPLA_RESULT_TRUE;
 }
 
@@ -775,11 +751,6 @@ int supla_dev_iterate(supla_dev_t *dev)
 	struct timeval sys_time;
 	gettimeofday(&sys_time,NULL);
 
-	if(!supla_dev_initialized(dev)){
-		supla_log(LOG_ERR,"[%s] Cannot iterate - not initialized", dev->name);
-		return SUPLA_RESULT_FALSE;
-	}
-
 	dev->uptime = difftime(sys_time.tv_sec, dev->init_time.tv_sec);
 	switch (dev->state) {
 		case SUPLA_DEV_STATE_CONFIG:
@@ -793,6 +764,13 @@ int supla_dev_iterate(supla_dev_t *dev)
 
 			supla_log(LOG_INFO,"[%s] Connecting to: %s:%d using: %s",
 					dev->name,dev->supla_config.server,dev->supla_config.port,dev->cloud_backend->id);
+
+			dev->cloud_backend->free(dev->cloud_link);
+			dev->cloud_link = dev->cloud_backend->init(dev->supla_config.server, dev->supla_config.port, dev->supla_config.ssl);
+			if(!dev->cloud_link){
+				supla_log(LOG_ERR,"Cannot create socket");
+				return SUPLA_RESULT_FALSE;
+			}
 
 			if(dev->cloud_backend->connect(dev->cloud_link) == 0){
 				supla_delay_ms(5000);
@@ -837,7 +815,7 @@ int supla_dev_iterate(supla_dev_t *dev)
 			break;
 	}
 
-	if(srpc_iterate(dev->srpc) != SUPLA_RESULT_TRUE) {
+	if(srpc_iterate(dev->srpc) == SUPLA_RESULT_FALSE) {
 		supla_log(LOG_DEBUG, "srpc_iterate failed");
 		supla_dev_set_connection_reset_cause(dev,SUPLA_LASTCONNECTIONRESETCAUSE_SERVER_CONNECTION_LOST);
 		supla_dev_set_state(dev,SUPLA_DEV_STATE_DISCONNECTED);
