@@ -536,7 +536,7 @@ int supla_dev_add_channel(supla_dev_t *dev, supla_channel_t *ch)
 
 	channel_count = supla_dev_get_channel_count(dev);
 
-	if(channel_count >= SUPLA_CHANNELMAXCOUNT){
+	if(channel_count+1 >= SUPLA_CHANNELMAXCOUNT){
 		supla_log(LOG_ERR,"[%s] cannot add channel: channel max count reached", dev->name);
 		return SUPLA_RESULT_FALSE;
 	}
