@@ -253,15 +253,6 @@ int supla_dev_set_common_channel_state_callback(supla_dev_t *dev, supla_device_g
 int supla_dev_set_server_time_sync_callback(supla_dev_t *dev, on_server_time_sync_callback_t callback);
 
 /**
- * @brief Set SUPLA cloud connection backend
- *
- * @param[in] dev SUPLA device instance
- * @param[in] backend connection backend
- * @return SUPLA_RESULT_TRUE on success
- */
-int supla_dev_set_cloud_backend(supla_dev_t *dev, supla_cloud_backend_t *backend);
-
-/**
  * @brief Add new channel to SUPLA device
  *
  * @note  Channel must be initialized before

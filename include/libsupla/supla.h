@@ -28,14 +28,4 @@ struct supla_config {
 	int activity_timeout;
 };
 
-typedef struct {
-	const char *id;
-	void *(*init)(const char host[], int port, unsigned char secure);
-	int (*connect)(void *link);
-	int (*read)(void *link, void *buf, int count);
-	int (*write)(void *link, void *buf, int count);
-	void (*close)(void *link);
-	void (*free)(void *link);
-} supla_cloud_backend_t;
-
 #endif /* LIBSUPLA_SUPLA_H_ */

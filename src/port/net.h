@@ -9,6 +9,13 @@
 
 #include "arch.h"
 
-extern supla_cloud_backend_t default_cloud_backend;
+//typedef void* supla_link_t;
+
+void *supla_link_init(const char host[], int port, unsigned char secure);
+int supla_link_connect(void *link);
+int supla_link_read(void *link, void *buf, int count);
+int supla_link_write(void *link, void *buf, int count);
+void supla_link_close(void *link);
+void supla_link_free(void *link);
 
 #endif /* SRC_PORT_NET_H_ */

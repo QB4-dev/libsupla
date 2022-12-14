@@ -5,81 +5,71 @@
  */
 
 #include "net.h"
-#include "arch.h"
 
 #if (LIBSUPLA_ARCH == LIBSUPLA_ARCH_UNIX)
+
+#ifndef NOSSL
 #include "../supla-common/supla-socket.h"
 
-void *supla_socket_init(const char host[], int port, unsigned char secure)
+void *supla_link_init(const char host[], int port, unsigned char secure)
 {
 	return ssocket_client_init(host,port,secure);
 }
 
-int supla_socket_connect(void *link)
+int supla_link_connect(void *link)
 {
 	return ssocket_client_connect(link,NULL,NULL);
 }
 
-int supla_socket_read(void *link, void *buf, int count)
+int supla_link_read(void *link, void *buf, int count)
 {
 	return ssocket_read(link,NULL,buf,count);
 }
 
-int supla_socket_write(void *link, void *buf, int count)
+int supla_link_write(void *link, void *buf, int count)
 {
 	return ssocket_write(link,NULL,buf,count);
 }
 
-void supla_socket_close(void *link)
+void supla_link_close(void *link)
 {
-	return supla_socket_close(link);
+	return ssocket_close(link);
 }
 
-void supla_socket_free(void *link)
+void supla_link_free(void *link)
 {
 	return ssocket_free(link);
 }
 
-supla_cloud_backend_t default_cloud_backend = {
-	.id = "supla-socket-backend",
-	.init = supla_socket_init,
-	.connect = supla_socket_connect,
-	.read = supla_socket_read,
-	.write = supla_socket_write,
-	.close = supla_socket_close,
-	.free = supla_socket_free
-};
-#endif
+#else
 
-
-#if LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP8266 || LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP32
 typedef struct {
-  int port;
-  char *host;
-  int sfd;
+	int port;
+	char *host;
+	int sfd;
 } backend_data_t;
 
-void *basic_socket_init(const char host[], int port, unsigned char secure)
+void *supla_link_init(const char host[], int port, unsigned char secure)
 {
 	backend_data_t *ssd = malloc(sizeof(backend_data_t));
 	if(!ssd)
 		return NULL;
-		
+
 	memset(ssd, 0, sizeof(backend_data_t));
 	if(secure){
 		supla_log(LOG_WARNING,"WARNING: basic SUPLA Cloud backend doesn't support encryption");
-		port = (!port || port == 2016) ? port : 2015; //switch to unencrypted port
+		port = (!port || port == 2016) ? 2015 : port; //switch to unencrypted port
 	}
 
 	ssd->port = port;
 	ssd->sfd = -1;
 	if(host)
-	  ssd->host = strdup(host);
+		ssd->host = strdup(host);
 
 	return ssd;
 }
 
-void basic_socket_close(void *ssd)
+void supla_link_close(void *ssd)
 {
 	backend_data_t *socket_data = ssd;
 	if(socket_data->sfd != -1){
@@ -88,21 +78,21 @@ void basic_socket_close(void *ssd)
 	}
 }
 
-void basic_socket_free(void *ssd)
+void supla_link_free(void *ssd)
 {
 	backend_data_t *socket_data = ssd;
 	if(socket_data){
-		basic_socket_close(ssd);
+		supla_link_close(ssd);
 		free(socket_data->host);
 		socket_data->host = NULL;
 		free(ssd);
 	}
 }
 
-int basic_socket_connect(void *ssd)
+int supla_link_connect(void *ssd)
 {
 	backend_data_t *socket_data = ssd;
-	basic_socket_close(ssd);
+	supla_link_close(ssd);
 
 	struct in6_addr serveraddr;
 	struct addrinfo hints, *res = NULL;
@@ -150,26 +140,19 @@ int basic_socket_connect(void *ssd)
 	return 1;
 }
 
-int basic_socket_read(void *ssd, void *buf, int count)
+int supla_link_read(void *ssd, void *buf, int count)
 {
 	backend_data_t *socket_data = ssd;
 	return recv(socket_data->sfd, buf, count, MSG_DONTWAIT);
 }
 
-int basic_socket_write(void *ssd, void *buf, int count)
+int supla_link_write(void *ssd, void *buf, int count)
 {
 	backend_data_t *socket_data = ssd;
 	return send(socket_data->sfd, buf, count, MSG_NOSIGNAL);
 }
-
-supla_cloud_backend_t default_cloud_backend = {
-	.id = "default-backend",
-	.init = basic_socket_init,
-	.connect = basic_socket_connect,
-	.read = basic_socket_read,
-	.write = basic_socket_write,
-	.close = basic_socket_close,
-	.free = basic_socket_free
-};
 #endif
+
+#endif
+
 

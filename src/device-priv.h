@@ -23,7 +23,6 @@ struct supla_dev {
 	supla_dev_state_t state;
 	struct supla_config supla_config;
 
-	supla_cloud_backend_t *cloud_backend;
 	void *cloud_link;
 	void *srpc;
 
