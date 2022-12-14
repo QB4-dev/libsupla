@@ -27,12 +27,6 @@ static int supla_dev_write(void *buf, int count, void *dcd)
 	return dev->cloud_backend->write(dev->cloud_link, buf, count);
 }
 
-void supla_dev_before_async_call(void *_srpc, unsigned int call_type, void *dcd)
-{
-	supla_dev_t *dev = dcd;
-	gettimeofday(&dev->last_call, NULL);
-}
-
 static void supla_dev_set_state(supla_dev_t *dev, supla_dev_state_t new_state)
 {
 	if(dev->state == new_state)
@@ -300,6 +294,7 @@ static void supla_dev_on_remote_call_received(void *_srpc,
 		supla_log(LOG_ERR, "srpc_getdata error!");
 		return;
 	}
+	gettimeofday(&dev->last_resp, NULL);
 
 	switch (rd.call_id) {
 	case SUPLA_SDC_CALL_GETVERSION_RESULT:
@@ -348,7 +343,6 @@ static void supla_dev_on_remote_call_received(void *_srpc,
 		break;
 	}
 	srpc_rd_free(&rd);
-	gettimeofday(&dev->last_resp, NULL);
 }
 
 static int supla_connection_ping(supla_dev_t *dev)
@@ -359,8 +353,9 @@ static int supla_connection_ping(supla_dev_t *dev)
 	if (dev->supla_config.activity_timeout == 0)
 		return SUPLA_RESULT_TRUE;
 
-	if ((now.tv_sec - dev->last_call.tv_sec) >= (dev->supla_config.activity_timeout - 5)){
+	if ((now.tv_sec - dev->last_ping.tv_sec) >= (dev->supla_config.activity_timeout - 5)){
 		srpc_dcs_async_ping_server(dev->srpc);
+		gettimeofday(&dev->last_ping, NULL);
 	}
 
 	if ((now.tv_sec - dev->last_resp.tv_sec) >= (dev->supla_config.activity_timeout + 10)){
@@ -675,7 +670,6 @@ int supla_dev_set_config(supla_dev_t *dev, const struct supla_config *config)
 
 	srpc_params.data_read = supla_dev_read;
 	srpc_params.data_write = supla_dev_write;
-	srpc_params.before_async_call = &supla_dev_before_async_call;
 	srpc_params.on_remote_call_received = supla_dev_on_remote_call_received;
 	srpc_params.user_params = dev;
 
@@ -794,7 +788,7 @@ int supla_dev_iterate(supla_dev_t *dev)
 
 		case SUPLA_DEV_STATE_DISCONNECTED:
 			memset(&dev->reg_time,0,sizeof(dev->reg_time));
-			memset(&dev->last_call,0,sizeof(dev->last_call));
+			memset(&dev->last_ping,0,sizeof(dev->last_ping));
 			memset(&dev->last_resp,0,sizeof(dev->last_resp));
 
 			supla_log(LOG_INFO,"[%s] Connecting to: %s:%d using: %s",

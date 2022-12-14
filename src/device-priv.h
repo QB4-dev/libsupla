@@ -34,7 +34,7 @@ struct supla_dev {
 
 	struct timeval init_time;
 	struct timeval reg_time;
-	struct timeval last_call;
+	struct timeval last_ping;
 	struct timeval last_resp;
 
 	time_t uptime;
