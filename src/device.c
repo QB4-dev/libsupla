@@ -376,7 +376,7 @@ supla_dev_t* supla_dev_create(const char *dev_name, const char *soft_ver)
 	else
 		strncpy(dev->soft_ver,"libsupla "LIBSUPLA_VER,SUPLA_SOFTVER_MAXSIZE-1);
 
-	dev->state = SUPLA_DEV_STATE_DISCONNECTED;
+	dev->state = SUPLA_DEV_STATE_INIT;
 
 	TsrpcParams srpc_params;
 	srpc_params_init(&srpc_params);
@@ -456,8 +456,8 @@ const char *supla_dev_state_str(supla_dev_state_t state)
 		return "CONFIG";
 	case SUPLA_DEV_STATE_IDLE:
 		return "IDLE";
-	case SUPLA_DEV_STATE_DISCONNECTED:
-		return "DISCONNECTED";
+	case SUPLA_DEV_STATE_INIT:
+		return "INIT";
 	case SUPLA_DEV_STATE_CONNECTED:
 		return "CONNECTED";
 	case SUPLA_DEV_STATE_REGISTERED:
@@ -714,7 +714,7 @@ int supla_dev_start(supla_dev_t *dev)
 		return SUPLA_RESULT_FALSE;
 
 	lck_lock(dev->lck);
-	supla_dev_set_state(dev,SUPLA_DEV_STATE_DISCONNECTED);
+	supla_dev_set_state(dev,SUPLA_DEV_STATE_INIT);
 	lck_unlock(dev->lck);
 
 	return SUPLA_RESULT_TRUE;
@@ -797,7 +797,7 @@ static int supla_dev_iterate_tick(supla_dev_t *dev)
 		case SUPLA_DEV_STATE_IDLE:
 			return SUPLA_RESULT_TRUE;
 
-		case SUPLA_DEV_STATE_DISCONNECTED:
+		case SUPLA_DEV_STATE_INIT:
 			memset(&dev->reg_time,0,sizeof(dev->reg_time));
 			memset(&dev->last_ping,0,sizeof(dev->last_ping));
 			memset(&dev->last_resp,0,sizeof(dev->last_resp));
@@ -817,13 +817,13 @@ static int supla_dev_iterate_tick(supla_dev_t *dev)
 			if(!dev->reg_time.tv_sec){
 				if(!supla_dev_register(dev)){
 					supla_log(LOG_ERR,"[%s] supla_dev_register failed!",dev->name);
-					supla_dev_set_state(dev,SUPLA_DEV_STATE_DISCONNECTED);
+					supla_dev_set_state(dev,SUPLA_DEV_STATE_INIT);
 				}
 			}
 			if(difftime(sys_time.tv_sec,dev->reg_time.tv_sec) > 10){
 				supla_log(LOG_ERR,"[%s] Register failed: server not responded!",dev->name);
 				supla_dev_set_connection_reset_cause(dev,SUPLA_LASTCONNECTIONRESETCAUSE_SERVER_CONNECTION_LOST);
-				supla_dev_set_state(dev,SUPLA_DEV_STATE_DISCONNECTED);
+				supla_dev_set_state(dev,SUPLA_DEV_STATE_INIT);
 			}
 			break;
 
@@ -838,7 +838,7 @@ static int supla_dev_iterate_tick(supla_dev_t *dev)
 			dev->connection_uptime = difftime(sys_time.tv_sec, dev->reg_time.tv_sec);
 			if(supla_connection_ping(dev) == SUPLA_RESULT_FALSE){
 				supla_dev_set_connection_reset_cause(dev,SUPLA_LASTCONNECTIONRESETCAUSE_ACTIVITY_TIMEOUT);
-				supla_dev_set_state(dev,SUPLA_DEV_STATE_DISCONNECTED);
+				supla_dev_set_state(dev,SUPLA_DEV_STATE_INIT);
 				return SUPLA_RESULT_FALSE;
 			}
 			supla_dev_sync_channels_data(dev);
@@ -850,8 +850,8 @@ static int supla_dev_iterate_tick(supla_dev_t *dev)
 	if(srpc_iterate(dev->srpc) == SUPLA_RESULT_FALSE) {
 		supla_log(LOG_DEBUG, "srpc_iterate failed");
 		supla_dev_set_connection_reset_cause(dev,SUPLA_LASTCONNECTIONRESETCAUSE_SERVER_CONNECTION_LOST);
-		supla_dev_set_state(dev,SUPLA_DEV_STATE_DISCONNECTED);
-		supla_delay_ms(5000);
+		supla_dev_set_state(dev,SUPLA_DEV_STATE_INIT);
+		supla_delay_ms(5000);  //FIXME
 		return SUPLA_RESULT_FALSE;
 	}
 	return 0;

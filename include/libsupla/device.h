@@ -45,7 +45,7 @@ typedef struct supla_dev supla_dev_t;
 typedef enum {
 	SUPLA_DEV_STATE_CONFIG,
 	SUPLA_DEV_STATE_IDLE,
-	SUPLA_DEV_STATE_DISCONNECTED,
+	SUPLA_DEV_STATE_INIT,
 	SUPLA_DEV_STATE_CONNECTED,
 	SUPLA_DEV_STATE_REGISTERED,
 	SUPLA_DEV_STATE_ONLINE,
@@ -64,7 +64,7 @@ struct manufacturer_data {
  * void state_change_callback(supla_dev_t *dev, supla_dev_state_t state)
  * {
  * 	const char *states_str[] = {
- * 		[SUPLA_DEV_STATE_OFFLINE] = "OFFLINE",
+ * 		[SUPLA_DEV_STATE_INIT] = "INIT",
  * 		[SUPLA_DEV_STATE_CONNECTED] = "CONNECTED",
  * 		[SUPLA_DEV_STATE_REGISTERED] = "REGISTERED",
  * 		[SUPLA_DEV_STATE_ONLINE] = "ONLINE",
