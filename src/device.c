@@ -208,6 +208,8 @@ static void supla_dev_on_get_user_localtime_result(supla_dev_t *dev, TSDC_UserLo
 			/* update timers */
 			dev->init_time.tv_sec = local - dev->uptime;
 			dev->reg_time.tv_sec = local - dev->connection_uptime;
+			dev->last_ping.tv_sec = local;
+			dev->last_resp.tv_sec = local;
 		}else{
 			supla_log(LOG_ERR, "device time sync ERR");
 		}
