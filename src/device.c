@@ -387,6 +387,7 @@ supla_dev_t* supla_dev_create(const char *dev_name, const char *soft_ver)
 	srpc_params.user_params = dev;
 
 	dev->srpc = srpc_init(&srpc_params);
+	dev->lck = lck_init();
 
 	gettimeofday(&dev->init_time,NULL);
 	STAILQ_INIT(&dev->channels);
@@ -395,10 +396,13 @@ supla_dev_t* supla_dev_create(const char *dev_name, const char *soft_ver)
 
 int supla_dev_free(supla_dev_t *dev)
 {
+	assert(NULL != dev);
+
 	supla_channel_t *ch;
 
 	supla_cloud_disconnect(&dev->cloud_link);
 	srpc_free(dev->srpc);
+	lck_free(dev->lck);
 
 	STAILQ_FOREACH(ch,&dev->channels,channels){
 		supla_channel_deinit(ch);
@@ -407,22 +411,41 @@ int supla_dev_free(supla_dev_t *dev)
 	return SUPLA_RESULT_TRUE;
 }
 
-const char *supla_dev_get_name(const supla_dev_t *dev)
+int supla_dev_get_name(const supla_dev_t *dev, char *name, size_t len)
 {
-	return dev ? dev->name : NULL;
+	assert(NULL != dev);
+	assert(NULL != name);
+	assert(0 != len);
+
+	lck_lock(dev->lck);
+	strncpy(name,dev->name,len);
+	lck_unlock(dev->lck);
+
+	return SUPLA_RESULT_TRUE;
 }
 
-const char *supla_dev_get_software_version(const supla_dev_t *dev)
+int supla_dev_get_software_version(const supla_dev_t *dev, char *version, size_t len)
 {
-	return dev ? dev->soft_ver : NULL;
+	assert(NULL != dev);
+	assert(NULL != version);
+	assert(0 != len);
+
+	lck_lock(dev->lck);
+	strncpy(version,dev->soft_ver,len);
+	lck_unlock(dev->lck);
+
+	return SUPLA_RESULT_TRUE;
 }
 
 int supla_dev_get_state(const supla_dev_t *dev, supla_dev_state_t *state)
 {
-	if(!dev || !state)
-		return SUPLA_RESULT_FALSE;
+	assert(NULL != dev);
+	assert(NULL != state);
 
+	lck_lock(dev->lck);
 	*state = dev->state;
+	lck_unlock(dev->lck);
+
 	return SUPLA_RESULT_TRUE;
 }
 
@@ -448,91 +471,115 @@ const char *supla_dev_state_str(supla_dev_state_t state)
 
 int supla_dev_set_flags(supla_dev_t *dev, int flags)
 {
-	if(!dev)
-		return SUPLA_RESULT_FALSE;
+	assert(NULL != dev);
+
+	lck_lock(dev->lck);
 	dev->flags = flags;
+	lck_unlock(dev->lck);
+
 	return SUPLA_RESULT_TRUE;
 }
 
 int supla_dev_get_flags(const supla_dev_t *dev, int *flags)
 {
-	if(!dev || !flags)
-		return SUPLA_RESULT_FALSE;
+	assert(NULL != dev);
+	assert(NULL != flags);
+
+	lck_lock(dev->lck);
 	*flags = dev->flags;
+	lck_unlock(dev->lck);
+
 	return SUPLA_RESULT_TRUE;
 }
 
 int supla_dev_set_manufacturer_data(supla_dev_t *dev, const struct manufacturer_data *mfr_data)
 {
-	if(!dev)
-		return SUPLA_RESULT_FALSE;
+	assert(NULL != dev);
+	assert(NULL != mfr_data);
 
+	lck_lock(dev->lck);
 	dev->mfr_data = *mfr_data;
+	lck_unlock(dev->lck);
+
 	return SUPLA_RESULT_TRUE;
 }
 
 int supla_dev_get_manufacturer_data(const supla_dev_t *dev, struct manufacturer_data *mfr_data)
 {
-	if(!dev)
-		return SUPLA_RESULT_FALSE;
+	assert(NULL != dev);
+	assert(NULL != mfr_data);
 
+	lck_lock(dev->lck);
 	*mfr_data = dev->mfr_data;
+	lck_unlock(dev->lck);
+
 	return SUPLA_RESULT_TRUE;
 }
 
 int supla_dev_get_uptime(const supla_dev_t *dev, time_t *uptime)
 {
-	if(!dev || !uptime)
-		return SUPLA_RESULT_FALSE;
+	assert(NULL != dev);
+	assert(NULL != uptime);
 
+	lck_lock(dev->lck);
 	*uptime = dev->uptime;
+	lck_unlock(dev->lck);
+
 	return SUPLA_RESULT_TRUE;
 }
 
 int supla_dev_get_connection_uptime(const supla_dev_t *dev, time_t *connection_uptime)
 {
-	if(!dev || !connection_uptime)
-		return SUPLA_RESULT_FALSE;
+	assert(NULL != dev);
+	assert(NULL != connection_uptime);
 
+	lck_lock(dev->lck);
 	*connection_uptime = dev->connection_uptime;
+	lck_unlock(dev->lck);
+
 	return SUPLA_RESULT_TRUE;
 }
 
 int supla_dev_set_state_changed_callback(supla_dev_t *dev, on_change_state_callback_t callback)
 {
-	if(!dev)
-		return SUPLA_RESULT_FALSE;
+	assert(NULL != dev);
 
+	lck_lock(dev->lck);
 	dev->on_state_change = callback;
+	lck_unlock(dev->lck);
+
 	return SUPLA_RESULT_TRUE;
 }
 
 int supla_dev_set_common_channel_state_callback(supla_dev_t *dev, supla_device_get_state_handler_t callback)
 {
-	if(!dev)
-		return SUPLA_RESULT_FALSE;
+	assert(NULL != dev);
 
+	lck_lock(dev->lck);
 	dev->on_get_channel_state = callback;
+	lck_unlock(dev->lck);
+
 	return SUPLA_RESULT_TRUE;
 }
 
 int supla_dev_set_server_time_sync_callback(supla_dev_t *dev, on_server_time_sync_callback_t callback)
 {
-	if(!dev)
-		return SUPLA_RESULT_FALSE;
+	assert(NULL != dev);
+
+	lck_lock(dev->lck);
 	dev->on_server_time_sync = callback;
+	lck_unlock(dev->lck);
+
 	return SUPLA_RESULT_TRUE;
 }
 
 int supla_dev_add_channel(supla_dev_t *dev, supla_channel_t *ch)
 {
-	int channel_count;
+	assert(NULL != dev);
+	assert(NULL != ch);
 
-	struct supla_channel_priv *priv = ch->priv;
-	if(!ch->priv){
-		supla_log(LOG_ERR,"[%s] cannot add channel: channel not initialized", dev->name);
-		return SUPLA_RESULT_FALSE;
-	}
+	struct supla_channel_priv *ch_priv;
+	int channel_count;
 
 	channel_count = supla_dev_get_channel_count(dev);
 
@@ -541,58 +588,78 @@ int supla_dev_add_channel(supla_dev_t *dev, supla_channel_t *ch)
 		return SUPLA_RESULT_FALSE;
 	}
 
-	if(ch->type == SUPLA_CHANNELTYPE_ACTIONTRIGGER){
-		if(!priv->action_trigger){
-			supla_log(LOG_ERR,"[%s] cannot add channel: channel has no action trigger", dev->name);
-			return SUPLA_RESULTCODE_CHANNEL_CONFLICT;
-		}
-		if(ch->action_trigger_related_channel){
-			priv->action_trigger->properties.relatedChannelNumber = supla_channel_get_assigned_number(ch->action_trigger_related_channel)+1;
-		} else {
-			priv->action_trigger->properties.relatedChannelNumber = 0;
-		}
-		supla_log(LOG_DEBUG,"[%s] [%d]added new action trigger", dev->name, channel_count);
-	} else {
-		if(!priv->supla_val){
-			supla_log(LOG_ERR,"[%s] cannot add channel: channel has no value assigned", dev->name);
-			return SUPLA_RESULTCODE_CHANNEL_CONFLICT;
-		}
-		supla_log(LOG_DEBUG,"[%s] [%d]added new channel",dev->name,channel_count);
+	ch_priv = ch->priv;
+	if(!ch->priv){
+		supla_log(LOG_ERR,"[%s] cannot add channel: channel not initialized", dev->name);
+		return SUPLA_RESULT_FALSE;
 	}
+
+	lck_lock(ch_priv->lck);
+	if(ch->type == SUPLA_CHANNELTYPE_ACTIONTRIGGER){
+		if(!ch_priv->action_trigger){
+			supla_log(LOG_ERR,"[%s] cannot add channel: channel has no action trigger", dev->name);
+			lck_unlock(ch_priv->lck);
+			return SUPLA_RESULT_FALSE;
+		}
+		if(ch->action_trigger_related_channel)
+			ch_priv->action_trigger->properties.relatedChannelNumber = supla_channel_get_assigned_number(ch->action_trigger_related_channel)+1;
+		else
+			ch_priv->action_trigger->properties.relatedChannelNumber = 0;
+
+		supla_log(LOG_DEBUG,"[%s] [%d]add new action trigger", dev->name, channel_count);
+	} else {
+		if(!ch_priv->supla_val){
+			supla_log(LOG_ERR,"[%s] cannot add channel: channel has no value assigned", dev->name);
+			lck_unlock(ch_priv->lck);
+			return SUPLA_RESULT_FALSE;
+		}
+		supla_log(LOG_DEBUG,"[%s] [%d]add new channel",dev->name,channel_count);
+	}
+	ch_priv->number = channel_count;
+	lck_unlock(ch_priv->lck);
+
+	lck_lock(dev->lck);
 	STAILQ_INSERT_TAIL(&dev->channels,ch,channels);
-	priv->number = channel_count;
+	lck_unlock(dev->lck);
 	return SUPLA_RESULT_TRUE;}
 
 int supla_dev_get_channel_count(const supla_dev_t *dev)
 {
+	assert(NULL != dev);
+
 	supla_channel_t *ch;
 	int n = 0;
+
+	lck_lock(dev->lck);
 	STAILQ_FOREACH(ch,&dev->channels,channels){
 		n++;
 	}
+	lck_unlock(dev->lck);
 	return n;
 }
 
 supla_channel_t *supla_dev_get_channel_by_num(const supla_dev_t *dev, int num)
 {
-	supla_channel_t *ch;
-	struct supla_channel_priv *priv;
+	assert(NULL != dev);
 
+	supla_channel_t *ch, *out = NULL;
+
+	lck_lock(dev->lck);
 	STAILQ_FOREACH(ch,&dev->channels,channels){
-		priv = ch->priv;
-		if(priv->number == num)
-			return ch;
+		if(supla_channel_get_assigned_number(ch) == num)
+			out = ch;
 	}
-	return NULL;
+	lck_unlock(dev->lck);
+	return out;
 }
 
 int supla_dev_set_config(supla_dev_t *dev, const struct supla_config *config)
 {
+	assert(NULL != dev);
+	assert(NULL != config);
+
 	const char empty_auth[SUPLA_AUTHKEY_SIZE] = {0};
 	const char empty_guid[SUPLA_GUID_SIZE] = {0};
-
-	if(!dev || !config)
-		return SUPLA_RESULT_FALSE;
 	
 	if(config->email[0] == 0){
 		supla_log(LOG_ERR,"email not set");
@@ -614,44 +681,53 @@ int supla_dev_set_config(supla_dev_t *dev, const struct supla_config *config)
 		return SUPLA_RESULTCODE_GUID_ERROR;
 	}
 
+	lck_lock(dev->lck);
 	dev->supla_config = *config;
-
-	if(!dev->supla_config.port)
-		dev->supla_config.port = dev->supla_config.ssl ? 2016 : 2015;
-
-	if(!dev->supla_config.activity_timeout)
-		dev->supla_config.activity_timeout = 120;
+	/* set defaults if port or activity timeout not provided */
+	dev->supla_config.port = dev->supla_config.port ? dev->supla_config.port : dev->supla_config.ssl ? 2016 : 2015;
+	dev->supla_config.activity_timeout = dev->supla_config.activity_timeout ? dev->supla_config.activity_timeout : 120;
+	lck_unlock(dev->lck);
 
 	return SUPLA_RESULT_TRUE;
 }
 
 int supla_dev_get_config(supla_dev_t *dev, struct supla_config *config)
 {
-	if(!dev || !config)
-		return SUPLA_RESULT_FALSE;
+	assert(NULL != dev);
+	assert(NULL != config);
 
+	lck_lock(dev->lck);
 	*config = dev->supla_config;
+	lck_unlock(dev->lck);
+
 	return SUPLA_RESULT_TRUE;
 }
 
 int supla_dev_start(supla_dev_t *dev)
 {
-	if(!dev)
+	assert(NULL != dev);
+
+	supla_dev_state_t state;
+	supla_dev_get_state(dev, &state);
+
+	if(state != SUPLA_DEV_STATE_IDLE && state != SUPLA_DEV_STATE_CONFIG)
 		return SUPLA_RESULT_FALSE;
 
-	if(dev->state != SUPLA_DEV_STATE_IDLE && dev->state != SUPLA_DEV_STATE_CONFIG)
-		return SUPLA_RESULT_FALSE;
-
+	lck_lock(dev->lck);
 	supla_dev_set_state(dev,SUPLA_DEV_STATE_DISCONNECTED);
+	lck_unlock(dev->lck);
+
 	return SUPLA_RESULT_TRUE;
 }
 
 int supla_dev_stop(supla_dev_t *dev)
 {
-	if(!dev)
-		return SUPLA_RESULT_FALSE;
+	assert(NULL != dev);
 
+	lck_lock(dev->lck);
 	supla_dev_set_state(dev,SUPLA_DEV_STATE_IDLE);
+	lck_unlock(dev->lck);
+
 	return SUPLA_RESULT_TRUE;
 }
 
@@ -710,7 +786,7 @@ static void supla_dev_sync_channels_data(supla_dev_t *dev)
 	}
 }
 
-int supla_dev_iterate(supla_dev_t *dev)
+static int supla_dev_iterate_tick(supla_dev_t *dev)
 {
 	struct timeval sys_time;
 	gettimeofday(&sys_time,NULL);
@@ -729,7 +805,7 @@ int supla_dev_iterate(supla_dev_t *dev)
 			supla_log(LOG_INFO,"[%s] Connecting to: %s:%d", dev->name,dev->supla_config.server,dev->supla_config.port);
 			supla_cloud_disconnect(&dev->cloud_link);
 			if(!supla_cloud_connect(&dev->cloud_link,dev->supla_config.server, dev->supla_config.port, dev->supla_config.ssl)){
-				supla_delay_ms(5000);
+				supla_delay_ms(5000); //FIXME
 				return SUPLA_RESULT_FALSE;
 			} else {
 				supla_log(LOG_INFO,"[%s] Connected to server",dev->name);
@@ -781,12 +857,25 @@ int supla_dev_iterate(supla_dev_t *dev)
 	return 0;
 }
 
+
+int supla_dev_iterate(supla_dev_t *dev)
+{
+	assert(NULL != dev);
+	int result;
+
+	lck_lock(dev->lck);
+	result = supla_dev_iterate_tick(dev);
+	lck_unlock(dev->lck);
+	return result;
+}
+
 int supla_dev_enter_config_mode(supla_dev_t *dev)
 {
-	if(!dev)
-		return SUPLA_RESULT_FALSE;
+	assert(NULL != dev);
 
+	lck_lock(dev->lck);
 	supla_dev_set_state(dev,SUPLA_DEV_STATE_CONFIG);
+	lck_unlock(dev->lck);
 	return SUPLA_RESULT_TRUE;
 }
 

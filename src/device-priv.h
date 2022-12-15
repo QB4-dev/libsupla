@@ -11,6 +11,7 @@
 extern "C" {
 #endif
 
+#include <assert.h>
 #include <libsupla/device.h>
 
 /* device private data */
@@ -25,6 +26,7 @@ struct supla_dev {
 
 	supla_link_t cloud_link;
 	void *srpc;
+	void *lck;
 
 	on_change_state_callback_t on_state_change;
 	supla_device_get_state_handler_t on_get_channel_state;

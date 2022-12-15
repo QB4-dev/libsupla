@@ -1,4 +1,7 @@
+.settings/
+build
+include/libsupla/supla-common
+*.o
 *.a
 *.so*
-*.o
-include/libsupla/supla-common
+
