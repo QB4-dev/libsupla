@@ -130,8 +130,8 @@ static void supla_dev_on_set_channel_value(supla_dev_t *dev, TSD_SuplaChannelNew
 	if(!ch){
 		supla_log(LOG_ERR,"channel[%d] not found",new_value->ChannelNumber);
 		success = 0;
-	}else if(ch->on_set_value){
-		success = ch->on_set_value(ch,new_value);
+	}else if(ch->config.on_set_value){
+		success = ch->config.on_set_value(ch,new_value);
 	}
 	srpc_ds_async_set_channel_result(dev->srpc, new_value->ChannelNumber, new_value->SenderID, success);
 }
@@ -151,8 +151,8 @@ static void supla_dev_on_set_channel_group_value(supla_dev_t *dev, TSD_SuplaChan
 	if(!ch){
 		supla_log(LOG_ERR,"channel[%d] not found",new_value.ChannelNumber);
 		success = 0;
-	}else if(ch->on_set_value){
-		success = ch->on_set_value(ch,&new_value);
+	}else if(ch->config.on_set_value){
+		success = ch->config.on_set_value(ch,&new_value);
 	}
 	srpc_ds_async_set_channel_result(dev->srpc, new_value.ChannelNumber, new_value.SenderID, success);
 }
@@ -181,8 +181,8 @@ static void supla_dev_get_channel_state(supla_dev_t *dev, TCSD_ChannelStateReque
 
 	supla_channel_t *ch = supla_dev_get_channel_by_num(dev,channel_state_request->ChannelNumber);
 	if(ch){
-		if(ch->on_get_state)
-			ch->on_get_state(ch, &state);
+		if(ch->config.on_get_state)
+			ch->config.on_get_state(ch, &state);
 	} else {
 		supla_log(LOG_ERR,"channel[%d] not found", channel_state_request->ChannelNumber);
 	}
@@ -243,8 +243,8 @@ static void supla_dev_on_calcfg_request(supla_dev_t *dev, TSD_DeviceCalCfgReques
 	}else{
 		supla_channel_t *ch = supla_dev_get_channel_by_num(dev,calcfg->ChannelNumber);
 		if(ch){
-			if(ch->on_calcfg_req)
-				result.Result = ch->on_calcfg_req(ch, calcfg);
+			if(ch->config.on_calcfg_req)
+				result.Result = ch->config.on_calcfg_req(ch, calcfg);
 			else
 				result.Result = SUPLA_CALCFG_RESULT_NOT_SUPPORTED;
 		} else {
@@ -406,8 +406,10 @@ int supla_dev_free(supla_dev_t *dev)
 	srpc_free(dev->srpc);
 	lck_free(dev->lck);
 
-	STAILQ_FOREACH(ch,&dev->channels,channels){
-		supla_channel_deinit(ch);
+	while(!STAILQ_EMPTY(&dev->channels)){
+		ch = STAILQ_FIRST(&dev->channels);
+		STAILQ_REMOVE_HEAD(&dev->channels,channels);
+		supla_channel_free(ch);
 	}
 	free(dev);
 	return SUPLA_RESULT_TRUE;
@@ -579,8 +581,6 @@ int supla_dev_add_channel(supla_dev_t *dev, supla_channel_t *ch)
 {
 	assert(NULL != dev);
 	assert(NULL != ch);
-
-	struct supla_channel_priv *ch_priv;
 	int channel_count;
 
 	channel_count = supla_dev_get_channel_count(dev);
@@ -590,38 +590,17 @@ int supla_dev_add_channel(supla_dev_t *dev, supla_channel_t *ch)
 		return SUPLA_RESULT_FALSE;
 	}
 
-	ch_priv = ch->priv;
-	if(!ch->priv){
-		supla_log(LOG_ERR,"[%s] cannot add channel: channel not initialized", dev->name);
-		return SUPLA_RESULT_FALSE;
-	}
-
-	lck_lock(ch_priv->lck);
-	if(ch->type == SUPLA_CHANNELTYPE_ACTIONTRIGGER){
-		if(!ch_priv->action_trigger){
-			supla_log(LOG_ERR,"[%s] cannot add channel: channel has no action trigger", dev->name);
-			lck_unlock(ch_priv->lck);
-			return SUPLA_RESULT_FALSE;
-		}
-		if(ch->action_trigger_related_channel)
-			ch_priv->action_trigger->properties.relatedChannelNumber = supla_channel_get_assigned_number(ch->action_trigger_related_channel)+1;
-		else
-			ch_priv->action_trigger->properties.relatedChannelNumber = 0;
-
-		supla_log(LOG_DEBUG,"[%s] [%d]add new action trigger", dev->name, channel_count);
-	} else {
-		if(!ch_priv->supla_val){
-			supla_log(LOG_ERR,"[%s] cannot add channel: channel has no value assigned", dev->name);
-			lck_unlock(ch_priv->lck);
-			return SUPLA_RESULT_FALSE;
-		}
-		supla_log(LOG_DEBUG,"[%s] [%d]add new channel",dev->name,channel_count);
-	}
-	ch_priv->number = channel_count;
-	lck_unlock(ch_priv->lck);
-
 	lck_lock(dev->lck);
+	lck_lock(ch->lck);
+	if(ch->config.type == SUPLA_CHANNELTYPE_ACTIONTRIGGER)
+		supla_log(LOG_DEBUG,"[%s] [%d]add new action trigger", dev->name, channel_count);
+	 else
+		supla_log(LOG_DEBUG,"[%s] [%d]add new channel",dev->name,channel_count);
+
+	ch->number = channel_count;
 	STAILQ_INSERT_TAIL(&dev->channels,ch,channels);
+
+	lck_unlock(ch->lck);
 	lck_unlock(dev->lck);
 	return SUPLA_RESULT_TRUE;}
 

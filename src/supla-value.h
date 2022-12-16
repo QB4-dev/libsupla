@@ -20,7 +20,7 @@ typedef struct {
 } supla_value_t;
 
 void supla_val_init(supla_value_t *supla_val, char sync_onchange);
-void supla_val_deinit(supla_value_t *supla_val);
+void supla_val_free(supla_value_t *supla_val);
 
 int supla_val_set(supla_value_t *supla_val, void *value, size_t len);
 

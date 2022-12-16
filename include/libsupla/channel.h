@@ -17,16 +17,20 @@ extern "C" {
 /**
  * @brief SUPLA channel instance
  *
- * Channel declaration examples:
+ * Channel config examples:
  * @code{c}
- * supla_channel_t distance_channel = {
+ *
+ *
+ * supla_channel_t *dist_channel;
+ *
+ * supla_channel_config_t distance_channel_config = {
  * 	.type = SUPLA_CHANNELTYPE_DISTANCESENSOR ,
  * 	.supported_functions = SUPLA_CHANNELFNC_DISTANCESENSOR ,
  * 	.default_function = SUPLA_CHANNELFNC_DISTANCESENSOR,
- * 	.sync_values_onchange = 1,
- * 	.flags = SUPLA_CHANNEL_FLAG_CHANNELSTATE,
- * 	.on_get_state = get_dist_channel_state
  * };
+ *
+ *
+ * supla_channel_t *light_channel;
  *
  * int power_set_value(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value)
  * {
@@ -35,7 +39,7 @@ extern "C" {
  * 	return supla_channel_set_relay_value(ch,relay_val);
  * }
  *
- * supla_channel_t light_channel = {
+ * supla_channel_config_t light_channel_config = {
  * 	.type = SUPLA_CHANNELTYPE_RELAY,
  * 	.supported_functions = SUPLA_CHANNELFNC_LIGHTSWITCH|SUPLA_CHANNELFNC_POWERSWITCH,
  * 	.default_function = SUPLA_CHANNELFNC_LIGHTSWITCH,
@@ -43,17 +47,18 @@ extern "C" {
  * 	.on_set_value = power_set_value
  * };
  *
- * supla_channel_t at_channel = {
+ * supla_channel_t *at_channel;
+ *
+ * supla_channel_config_t at_channel_config = {
  * 	.type = SUPLA_CHANNELTYPE_ACTIONTRIGGER,
  * 	.supported_functions = SUPLA_CHANNELFNC_ACTIONTRIGGER,
  * 	.default_function = SUPLA_CHANNELFNC_ACTIONTRIGGER,
  * 	.action_trigger_caps = SUPLA_ACTION_CAP_SHORT_PRESS_x1|SUPLA_ACTION_CAP_SHORT_PRESS_x2,
  * 	.action_trigger_conflicts = SUPLA_ACTION_CAP_SHORT_PRESS_x2,
- * 	.action_trigger_related_channel = &light_channel
+ * 	.action_trigger_related_channel = light_channel
  * };
  * @endcode
  *
- * @note every channel must be initialized before use.
  */
 typedef struct supla_channel supla_channel_t;
 
@@ -119,10 +124,11 @@ typedef int (*supla_channel_get_state_handler_t)(supla_channel_t *ch, TDSC_Chann
  */
 typedef int (*supla_channel_set_calcfg_handler_t)(supla_channel_t *ch, TSD_DeviceCalCfgRequest *calcfg);
 
+
 /**
- * SUPLA channel structure
+ * SUPLA channel config structure
  */
-struct supla_channel {
+typedef struct supla_channel_config {
 	int type;                                                     //SUPLA_CHANNELTYPE_*
 	union {
 		struct {
@@ -133,7 +139,7 @@ struct supla_channel {
 		struct {
 			unsigned int action_trigger_caps;                     //SUPLA_ACTION_CAP_*
 			unsigned int action_trigger_conflicts;                //SUPLA_ACTION_CAP_*
-			struct supla_channel *action_trigger_related_channel; //related channel for action trigger
+			supla_channel_t **action_trigger_related_channel;     //related channel for action trigger
 		};
 	};
 	int default_function;                                         //SUPLA_CHANNELFNC_*
@@ -142,19 +148,16 @@ struct supla_channel {
 	supla_channel_set_value_handler_t on_set_value;               //on set value request callback function
 	supla_channel_get_state_handler_t on_get_state;               //on get state request callback function
 	supla_channel_set_calcfg_handler_t on_calcfg_req;             //on calcfg request callback function
-
 	void *ctx;                                                    //channel context data defined by user
-	void *priv;                                                   //private data[DO NOT SET!]
-	STAILQ_ENTRY(supla_channel) channels;                         //other channels queued
-};
+} supla_channel_config_t;
 
 /**
  * @brief  Initialize SUPLA channel - allocate channel private data
  *
- * @param[in] ch given channel
+ * @param[in] cfg channel configuration
  * @return SUPLA_RESULT_TRUE on success
  */
-int supla_channel_init(supla_channel_t* ch);
+supla_channel_t* supla_channel_create(const supla_channel_config_t* config);
 
 /**
  * @brief  Deinitialize SUPLA channel - free allocated memory
@@ -162,13 +165,31 @@ int supla_channel_init(supla_channel_t* ch);
  * @param[in] ch given channel
  * @return SUPLA_RESULT_TRUE on success
  */
-int supla_channel_deinit(supla_channel_t *ch);
+int supla_channel_free(supla_channel_t *ch);
+
+/**
+ * @brief  Get SUPLA channel config
+ *
+ * @param[in] ch given channel
+ * @param[out] cfg channel config
+ * @return SUPLA_RESULT_TRUE on success
+ */
+int supla_channel_get_config(supla_channel_t *ch, supla_channel_config_t* config);
+
+
+/**
+ * @brief  Get SUPLA channel context data
+ *
+ * @param[in] ch given channel
+ * @return data pointer on success or NULL
+ */
+void *supla_channel_get_ctx_data(supla_channel_t *ch);
 
 /**
  * @brief  Get assigned channel number when added to device
  *
  * @param[in] ch given channel
- * @return assigned channel number or -1 if channel is uninitialized
+ * @return assigned channel number or -1 on error
  */
 int supla_channel_get_assigned_number(supla_channel_t *ch);
 

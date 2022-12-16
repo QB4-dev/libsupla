@@ -13,7 +13,7 @@ void supla_action_trigger_init(supla_action_trigger_t *supla_action_trigger)
 	supla_action_trigger->sync = 1;
 }
 
-void supla_action_trigger_deinit(supla_action_trigger_t *supla_action_trigger)
+void supla_action_trigger_free(supla_action_trigger_t *supla_action_trigger)
 {
 }
 

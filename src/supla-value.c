@@ -14,7 +14,7 @@ void supla_val_init(supla_value_t *supla_val, char sync_onchange)
 	supla_val->sync_onchange = sync_onchange;
 }
 
-void supla_val_deinit(supla_value_t *supla_val)
+void supla_val_free(supla_value_t *supla_val)
 {
 }
 

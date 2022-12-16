@@ -14,7 +14,7 @@ void supla_extval_init(supla_extended_value_t *supla_extval, char sync_onchange)
 	supla_extval->sync_onchange = sync_onchange;
 }
 
-void supla_extval_deinit(supla_extended_value_t *supla_extval)
+void supla_extval_free(supla_extended_value_t *supla_extval)
 {
 }
 

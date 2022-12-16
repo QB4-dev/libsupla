@@ -25,29 +25,27 @@ static struct supla_config supla_config = {
 	.ssl = 1
 };
 
+/* Define channels here */
+
 //TEMPERATURE SENSOR
-supla_channel_t temp_channel = {
+static supla_channel_t *temp_channel;
+
+static supla_channel_config_t temp_channel_config = {
 	.type = SUPLA_CHANNELTYPE_THERMOMETER ,
 	.supported_functions = SUPLA_CHANNELFNC_THERMOMETER,
 	.default_function = SUPLA_CHANNELFNC_THERMOMETER,
 };
 
-//RELAY CONTROL
-static int relay_set_value(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value)
+//LIGHT CONTROL
+static supla_channel_t *light_channel;
+
+static int relay_on_set_value(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value)
 {
 	TRelayChannel_Value *relay_val = (TRelayChannel_Value*)new_value->value;
-	supla_log(LOG_DEBUG,"relay set value %d",relay_val->hi);
+	supla_log(LOG_DEBUG,"light set value %s",relay_val->hi?"ON":"OFF");
 	return supla_channel_set_relay_value(ch,relay_val);
 }
 
-supla_channel_t relay_channel = {
-	.type = SUPLA_CHANNELTYPE_RELAY,
-	.supported_functions = SUPLA_CHANNELFNC_LIGHTSWITCH|SUPLA_CHANNELFNC_POWERSWITCH,
-	.default_function = SUPLA_CHANNELFNC_POWERSWITCH,
-	.on_set_value = relay_set_value
-};
-
-//LIGHT CONTROL
 static int get_light_state(supla_channel_t *ch, TDSC_ChannelState *state)
 {
 	state->Fields |= SUPLA_CHANNELSTATE_FIELD_LIGHTSOURCEOPERATINGTIME;
@@ -55,14 +53,27 @@ static int get_light_state(supla_channel_t *ch, TDSC_ChannelState *state)
 	return 0;
 }
 
-supla_channel_t light_channel = {
+static supla_channel_config_t light_channel_config = {
 	.type = SUPLA_CHANNELTYPE_RELAY,
 	.supported_functions = SUPLA_CHANNELFNC_LIGHTSWITCH,
 	.default_function = SUPLA_CHANNELFNC_LIGHTSWITCH,
 	.flags = SUPLA_CHANNEL_FLAG_LIGHTSOURCELIFESPAN_SETTABLE,
-	.on_set_value = relay_set_value,
-	.on_get_state = get_light_state
+	.on_set_value = relay_on_set_value,
+	.on_get_state = get_light_state,
 };
+
+//ACTION TRIGGER
+static supla_channel_t *at_channel;
+
+static supla_channel_config_t at_channel_config = {
+	.type = SUPLA_CHANNELTYPE_ACTIONTRIGGER,
+	.supported_functions = SUPLA_CHANNELFNC_ACTIONTRIGGER,
+	.default_function = SUPLA_CHANNELFNC_ACTIONTRIGGER,
+	.action_trigger_caps = SUPLA_ACTION_CAP_SHORT_PRESS_x1|SUPLA_ACTION_CAP_SHORT_PRESS_x2,
+	//.action_trigger_related_channel = &light_channel
+};
+
+
 
 
 static pthread_t io_thread;
@@ -80,12 +91,13 @@ static void *io_thread_function(void *data)
 	double temperature = 15;
 
 	srand(time(NULL));
+	sleep(30);
 	while(1){
 		puts("data update");
 		temperature = rand() %100;
 		supla_log(LOG_INFO,"temperature value=%g",temperature);
-		supla_channel_set_double_value(&temp_channel,temperature);
-		sleep(30);
+		supla_channel_set_double_value(temp_channel,temperature);
+		sleep(10);
 	}
 	pthread_exit(NULL);
 }
@@ -108,15 +120,15 @@ int main(void) {
 
 	/* Prepare channels */ 
 	supla_log(LOG_DEBUG,"Channels init");
-	supla_channel_init(&temp_channel);
-	supla_channel_init(&light_channel);
-	supla_channel_init(&relay_channel);
+	temp_channel = supla_channel_create(&temp_channel_config);
+	light_channel = supla_channel_create(&light_channel_config);
+	at_channel = supla_channel_create(&at_channel_config);
 	supla_log(LOG_DEBUG,"Channels initialized");
 
 	/* Add channels to device*/ 
-	supla_dev_add_channel(dev,&temp_channel);
-	supla_dev_add_channel(dev,&light_channel);
-	supla_dev_add_channel(dev,&relay_channel);
+	supla_dev_add_channel(dev,temp_channel);
+	supla_dev_add_channel(dev,light_channel);
+	supla_dev_add_channel(dev,at_channel);
 
 	signal(SIGINT,sig_handler); // Register signal handler
 	pthread_create(&io_thread,NULL,io_thread_function,NULL);

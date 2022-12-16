@@ -20,7 +20,7 @@ typedef struct {
 } supla_action_trigger_t;
 
 void supla_action_trigger_init(supla_action_trigger_t *supla_action_trigger);
-void supla_action_trigger_deinit(supla_action_trigger_t *supla_action_trigger);
+void supla_action_trigger_free(supla_action_trigger_t *supla_action_trigger);
 
 int supla_action_trigger_emit(supla_action_trigger_t *supla_action_trigger, const int ch_num, const _supla_int_t action);
 

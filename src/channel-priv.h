@@ -11,6 +11,7 @@
 extern "C" {
 #endif
 
+#include <assert.h>
 #include <libsupla/channel.h>
 
 #include "supla-value.h"
@@ -18,13 +19,17 @@ extern "C" {
 #include "supla-action-trigger.h"
 
 /* SUPLA channel private data */
-struct supla_channel_priv {
+struct supla_channel {
 	void *lck;
+	supla_channel_config_t config;
 	int number; //filled by device
 	int active_function; //may be changed by server
+
 	supla_value_t *supla_val;
 	supla_extended_value_t *supla_extval;
 	supla_action_trigger_t *action_trigger;
+
+	STAILQ_ENTRY(supla_channel) channels;   //other channels queued
 };
 
 /**

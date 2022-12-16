@@ -20,7 +20,7 @@ typedef struct {
 } supla_extended_value_t;
 
 void supla_extval_init(supla_extended_value_t *supla_extval, char sync_onchange);
-void supla_extval_deinit(supla_extended_value_t *supla_extval);
+void supla_extval_free(supla_extended_value_t *supla_extval);
 
 int supla_extval_set(supla_extended_value_t *supla_extval, TSuplaChannelExtendedValue *extval);
 
