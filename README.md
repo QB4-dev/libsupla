@@ -85,9 +85,11 @@ supla_dev_set_config(dev,&supla_config);
 SUPLA device uses channels. We can start from the most basic thermometer channel:
 
 ```
-supla_channel_t temp_channel = {
+static supla_channel_t *temp_channel;
+
+static supla_channel_config_t temp_channel_config = {
 	.type = SUPLA_CHANNELTYPE_THERMOMETER ,
-	.supported_functions = SUPLA_CHANNELFNC_THERMOMETER ,
+	.supported_functions = SUPLA_CHANNELFNC_THERMOMETER,
 	.default_function = SUPLA_CHANNELFNC_THERMOMETER,
 };
 ```
@@ -95,13 +97,13 @@ supla_channel_t temp_channel = {
 Channel must be initialized before added to device
 
 ```
-supla_channel_init(&temp_channel);
-supla_dev_add_channel(dev,&temp_channel);
+temp_channel = supla_channel_create(&temp_channel_config);
+supla_dev_add_channel(dev,temp_channel);
 ```
 In seperate thread/task we can set temperature
 
 ```
-supla_channel_set_double_value(&temp_channel,temp);
+supla_channel_set_double_value(temp_channel,temp);
 ```
 
 And in main SUPLA thread put `supla_dev_iterate` inside infinite loop
