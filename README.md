@@ -69,7 +69,7 @@ static struct supla_config supla_config = {
 
 ```
 
-You must have supla account registered with email address and to quick start generate your device data use links below:
+You must have supla account registered with email address and to quick start - generate your device data using links below:
 - [AUTHKEY generator](https://www.supla.org/arduino/get-authkey)
 - [GUID generator](https://www.supla.org/arduino/get-guid)
 
@@ -94,10 +94,10 @@ static supla_channel_config_t temp_channel_config = {
 };
 ```
 
-Channel must be initialized before added to device
+To create and add channel to device use following functions:
 
 ```
-temp_channel = supla_channel_create(&temp_channel_config);
+temp_channel = supla_channel_create(temp_channel_config);
 supla_dev_add_channel(dev,temp_channel);
 ```
 In seperate thread/task we can set temperature
