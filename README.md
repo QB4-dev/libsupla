@@ -97,7 +97,7 @@ static supla_channel_config_t temp_channel_config = {
 To create and add channel to device use following functions:
 
 ```
-temp_channel = supla_channel_create(temp_channel_config);
+temp_channel = supla_channel_create(&temp_channel_config);
 supla_dev_add_channel(dev,temp_channel);
 ```
 In seperate thread/task we can set temperature
