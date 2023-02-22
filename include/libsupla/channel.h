@@ -148,7 +148,7 @@ typedef struct supla_channel_config {
 	supla_channel_set_value_handler_t on_set_value;               //on set value request callback function
 	supla_channel_get_state_handler_t on_get_state;               //on get state request callback function
 	supla_channel_set_calcfg_handler_t on_calcfg_req;             //on calcfg request callback function
-	void *ctx;                                                    //channel context data defined by user
+	void *data;                                                    //channel context data defined by user
 } supla_channel_config_t;
 
 /**
@@ -178,12 +178,21 @@ int supla_channel_get_config(supla_channel_t *ch, supla_channel_config_t* config
 
 
 /**
- * @brief  Get SUPLA channel context data
+ * @brief  Get SUPLA channel data
  *
  * @param[in] ch given channel
  * @return data pointer on success or NULL
  */
-void *supla_channel_get_ctx_data(supla_channel_t *ch);
+void *supla_channel_get_data(supla_channel_t *ch);
+
+/**
+ * @brief  Set SUPLA channel data
+ *
+ * @param[in] ch given channel
+ * @param[in] data channel context data
+ * @return data pointer
+ */
+void *supla_channel_set_data(supla_channel_t *ch, void *data);
 
 /**
  * @brief  Get assigned channel number when added to device
@@ -206,7 +215,7 @@ int supla_channel_get_active_function(supla_channel_t *ch, int *function);
 int supla_channel_set_value(supla_channel_t *ch, void *value, size_t len);
 int supla_channel_set_binary_value(supla_channel_t *ch, uint8_t value);
 int supla_channel_set_double_value(supla_channel_t *ch, double value);
-int supla_channel_humidtemp_value(supla_channel_t *ch, double humid, double temp);
+int supla_channel_set_humidtemp_value(supla_channel_t *ch, double humid, double temp);
 int supla_channel_set_relay_value(supla_channel_t *ch, TRelayChannel_Value *relay);
 int supla_channel_set_rgbw_value(supla_channel_t *ch, TRGBW_Value *rgbw);
 int supla_channel_set_impulse_counter_value(supla_channel_t *ch, TDS_ImpulseCounter_Value *ic);

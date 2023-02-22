@@ -133,13 +133,23 @@ int supla_channel_get_config(supla_channel_t *ch, supla_channel_config_t* config
 }
 
 
-void *supla_channel_get_ctx_data(supla_channel_t *ch)
+void *supla_channel_get_data(supla_channel_t *ch)
 {
 	assert(NULL != ch);
 	void *data = NULL;
 
 	lck_lock(ch->lck);
-	data = ch->config.ctx;
+	data = ch->config.data;
+	lck_unlock(ch->lck);
+	return data;
+}
+
+void *supla_channel_set_data(supla_channel_t *ch, void *data)
+{
+	assert(NULL != ch);
+
+	lck_lock(ch->lck);
+	ch->config.data = data;
 	lck_unlock(ch->lck);
 	return data;
 }
@@ -191,7 +201,7 @@ int supla_channel_set_double_value(supla_channel_t *ch, double value)
 	return supla_channel_set_value(ch,&value,sizeof(double));
 }
 
-int supla_channel_humidtemp_value(supla_channel_t *ch, double humid, double temp)
+int supla_channel_set_humidtemp_value(supla_channel_t *ch, double humid, double temp)
 {
 	//TODO check channel type
 	char out[SUPLA_CHANNELVALUE_SIZE];
