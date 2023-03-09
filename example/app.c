@@ -129,6 +129,7 @@ int main(void) {
 	supla_dev_add_channel(dev,temp_channel);
 	supla_dev_add_channel(dev,light_channel);
 	supla_dev_add_channel(dev,at_channel);
+        supla_dev_start(dev);
 
 	signal(SIGINT,sig_handler); // Register signal handler
 	pthread_create(&io_thread,NULL,io_thread_function,NULL);

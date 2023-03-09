@@ -378,7 +378,7 @@ supla_dev_t* supla_dev_create(const char *dev_name, const char *soft_ver)
 	else
 		strncpy(dev->soft_ver,"libsupla "LIBSUPLA_VER,SUPLA_SOFTVER_MAXSIZE-1);
 
-	dev->state = SUPLA_DEV_STATE_INIT;
+	dev->state = SUPLA_DEV_STATE_IDLE;
 
 	TsrpcParams srpc_params;
 	srpc_params_init(&srpc_params);
@@ -734,8 +734,8 @@ static int supla_dev_register(supla_dev_t *dev)
 	}
 	reg_dev.channel_count = ch_num;
 
-	supla_log(LOG_INFO, "[%s] register device...", dev->name);
 	gettimeofday(&dev->reg_time,NULL);
+	supla_log(LOG_INFO, "[%s] register device...", dev->name);
 	return srpc_ds_async_registerdevice_e(dev->srpc, &reg_dev);
 }
 
@@ -785,22 +785,20 @@ static int supla_dev_iterate_tick(supla_dev_t *dev)
 
 			supla_log(LOG_INFO,"[%s] Connecting to: %s:%d", dev->name,dev->supla_config.server,dev->supla_config.port);
 			supla_cloud_disconnect(&dev->cloud_link);
-			if(!supla_cloud_connect(&dev->cloud_link,dev->supla_config.server, dev->supla_config.port, dev->supla_config.ssl)){
-				supla_delay_ms(5000); //FIXME
-				return SUPLA_RESULT_FALSE;
-			} else {
+			if(supla_cloud_connect(&dev->cloud_link,dev->supla_config.server, dev->supla_config.port, dev->supla_config.ssl)){
 				supla_log(LOG_INFO,"[%s] Connected to server",dev->name);
-				supla_dev_set_state(dev,SUPLA_DEV_STATE_CONNECTED);
-			}
-			break;
-
-		case SUPLA_DEV_STATE_CONNECTED:
-			if(!dev->reg_time.tv_sec){
 				if(!supla_dev_register(dev)){
 					supla_log(LOG_ERR,"[%s] supla_dev_register failed!",dev->name);
 					supla_dev_set_state(dev,SUPLA_DEV_STATE_INIT);
 				}
+				supla_dev_set_state(dev,SUPLA_DEV_STATE_CONNECTED);
+			} else {
+				supla_delay_ms(5000); //FIXME
+				return SUPLA_RESULT_FALSE;
 			}
+			break;
+
+		case SUPLA_DEV_STATE_CONNECTED:
 			if(difftime(sys_time.tv_sec,dev->reg_time.tv_sec) > 10){
 				supla_log(LOG_ERR,"[%s] Register failed: server not responded!",dev->name);
 				supla_dev_set_connection_reset_cause(dev,SUPLA_LASTCONNECTIONRESETCAUSE_SERVER_CONNECTION_LOST);
