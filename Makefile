@@ -53,7 +53,6 @@ ifeq ($(NOSSL), 1)
 endif
 
 CFLAGS += $(patsubst %,-I%,$(EXTRAINCDIRS))
-LDFLAGS = 
 
 .PHONY: all shared static clean install uninstall example
 
