@@ -19,9 +19,16 @@
 #ifndef DBCOMMON_H_
 #define DBCOMMON_H_
 
-#define DB_VERSION "20221020225729"
+#define DB_VERSION "20230612185931"
+
+#include <atomic>
 
 class dbcommon {
+ private:
+#ifdef __DEBUG
+  static std::atomic<int> conn_count;
+#endif /*__DEBUG*/
+
  protected:
   void *_mysql;
   int query(const char *stmt_str, bool log_err = false);
@@ -54,9 +61,6 @@ class dbcommon {
 
   static bool mainthread_init(void);
   static void mainthread_end(void);
-
-  static void thread_init(void);
-  static void thread_end(void);
 
   void start_transaction(void);
   void commit(void);

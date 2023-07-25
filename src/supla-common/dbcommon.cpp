@@ -26,6 +26,12 @@
 #include "log.h"
 #include "tools.h"
 
+using std::atomic;
+
+#ifdef __DEBUG
+atomic<int> dbcommon::conn_count;
+#endif /*__DEBUG*/
+
 dbcommon::dbcommon() { _mysql = NULL; }
 
 dbcommon::~dbcommon() { disconnect(); }
@@ -41,11 +47,11 @@ bool dbcommon::mainthread_init(void) {
 
 void dbcommon::mainthread_end(void) { mysql_library_end(); }
 
-void dbcommon::thread_init(void) { mysql_thread_init(); }
-
-void dbcommon::thread_end(void) { mysql_thread_end(); }
-
 bool dbcommon::connect(int connection_timeout_sec) {
+  if (is_connected()) {
+    return true;
+  }
+
   bool cmsg = false;
   struct timeval start_time;
   struct timeval tv;
@@ -65,9 +71,14 @@ bool dbcommon::connect(int connection_timeout_sec) {
       if (mysql_real_connect((MYSQL *)_mysql, cfg_get_host(), cfg_get_user(),
                              cfg_get_password(), cfg_get_database(),
                              cfg_get_port(), NULL, 0) == NULL) {
+#ifdef __DEBUG
+        supla_log(LOG_ERR,
+                  "Failed to connect to database. Conn count %i. Error: %s",
+                  conn_count.load(), mysql_error((MYSQL *)_mysql));
+#else
         supla_log(LOG_ERR, "Failed to connect to database: Error: %s",
                   mysql_error((MYSQL *)_mysql));
-        disconnect();
+#endif /*__DEBUG*/
       } else {
         if (mysql_set_character_set((MYSQL *)_mysql, "utf8mb4")) {
           supla_log(LOG_ERR,
@@ -93,11 +104,23 @@ bool dbcommon::connect(int connection_timeout_sec) {
   } while (!connected && connection_timeout_sec > 0 && !st_app_terminate &&
            tv.tv_sec - start_time.tv_sec < connection_timeout_sec);
 
+#ifdef __DEBUG
+  if (connected) {
+    conn_count++;
+  }
+#endif /*__DEBUG*/
+
   if (!connected) {
     supla_log(
         LOG_ERR,
         "MySQL - Failed to connect to database! Connection timeout %i sec.",
         connection_timeout_sec);
+
+    if (_mysql != NULL) {
+      mysql_close((MYSQL *)_mysql);
+      _mysql = NULL;
+    }
+
     return false;
   }
 
@@ -110,6 +133,9 @@ void dbcommon::disconnect(void) {
   if (_mysql != NULL) {
     mysql_close((MYSQL *)_mysql);
     _mysql = NULL;
+#ifdef __DEBUG
+    conn_count--;
+#endif /*__DEBUG*/
   }
 }
 
@@ -168,8 +194,8 @@ bool dbcommon::stmt_execute(void **_stmt, const char *stmt_str, void *bind,
     if (err == false) {
       if (mysql_stmt_execute(stmt) != 0) {
         if (exec_errors)
-          supla_log(LOG_ERR, "MySQL - execute error: %s",
-                    mysql_stmt_error(stmt));
+          supla_log(LOG_ERR, "MySQL - execute error: %s. %s",
+                    mysql_stmt_error(stmt), stmt_str);
 
       } else {
         *_stmt = stmt;
