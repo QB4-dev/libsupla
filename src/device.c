@@ -270,10 +270,35 @@ static void supla_dev_on_get_channel_functions_result(supla_dev_t *dev, TSD_Chan
 	}
 }
 
+static void supla_dev_on_set_channel_config(supla_dev_t *dev, TSD_ChannelConfig *channel_config)
+{
+	supla_log(LOG_DEBUG, "Received set channel config from server");
+	supla_log(LOG_DEBUG, "ch_cfg->num=%d %d",channel_config->ChannelNumber, channel_config->ConfigType);
+}
+
 static void supla_dev_on_get_channel_config_result(supla_dev_t *dev, TSD_ChannelConfig *channel_config)
 {
-	supla_log(LOG_DEBUG, "Received channel config from server");
-	supla_log(LOG_DEBUG, "ch_cfg->num",channel_config->ChannelNumber, channel_config->ConfigType);
+    supla_log(LOG_DEBUG, "Received get channel config result from server");
+    supla_log(LOG_DEBUG, "ch_cfg->num=%d %d",channel_config->ChannelNumber, channel_config->ConfigType);
+}
+
+static void supla_dev_on_channel_config_finished(supla_dev_t *dev, TSD_ChannelConfigFinished *channel_config)
+{
+    supla_log(LOG_DEBUG, "Received channel %d config finished from server",channel_config->ChannelNumber);
+}
+
+static void supla_dev_on_set_device_config(supla_dev_t *dev, TSDS_SetDeviceConfig *device_config)
+{
+    TSDS_SetDeviceConfigResult result;
+
+    supla_log(LOG_DEBUG, "Received set device config from server");
+    //TODO
+    srpc_ds_async_set_device_config_result(dev->srpc,&result);
+}
+
+static void supla_dev_on_set_device_config_result(supla_dev_t *dev, TSDS_SetDeviceConfigResult *result)
+{
+    supla_log(LOG_DEBUG, "Received set device config result from server");
 }
 
 static void supla_dev_on_remote_call_received(void *_srpc,
@@ -332,20 +357,20 @@ static void supla_dev_on_remote_call_received(void *_srpc,
 	case SUPLA_SD_CALL_GET_CHANNEL_FUNCTIONS_RESULT:
 		supla_dev_on_get_channel_functions_result(dev,rd.data.sd_channel_functions);
 		break;
+    case SUPLA_SD_CALL_SET_CHANNEL_CONFIG:
+        supla_dev_on_set_channel_config(dev,rd.data.sd_channel_config);
+        break;
 	case SUPLA_SD_CALL_GET_CHANNEL_CONFIG_RESULT:
 		supla_dev_on_get_channel_config_result(dev,rd.data.sd_channel_config);
 		break;
-	case SUPLA_SD_CALL_SET_CHANNEL_CONFIG:
-	    supla_log(LOG_DEBUG, "Received SET_CHANNEL_CONFIG from server!");
-	    break;
 	case SUPLA_SD_CALL_CHANNEL_CONFIG_FINISHED:
-	    supla_log(LOG_DEBUG, "Received CHANNEL_CONFIG_FINISHED from server!");
+	    supla_dev_on_channel_config_finished(dev,rd.data.sd_channel_config_finished);
 	    break;
 	case SUPLA_SD_CALL_SET_DEVICE_CONFIG:
-	    supla_log(LOG_DEBUG, "Received SET_DEVICE_CONFIG from server!");
+	    supla_dev_on_set_device_config(dev,rd.data.sds_set_device_config_request);
 	    break;
     case SUPLA_SD_CALL_SET_DEVICE_CONFIG_RESULT:
-        supla_log(LOG_DEBUG, "Received SET_DEVICE_CONFIG_RESULT from server!");
+        supla_dev_on_set_device_config_result(dev,rd.data.sds_set_device_config_result);
         break;
 	default:
 		supla_log(LOG_DEBUG, "Received unknown message from server!");
