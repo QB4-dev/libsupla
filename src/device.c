@@ -335,6 +335,18 @@ static void supla_dev_on_remote_call_received(void *_srpc,
 	case SUPLA_SD_CALL_GET_CHANNEL_CONFIG_RESULT:
 		supla_dev_on_get_channel_config_result(dev,rd.data.sd_channel_config);
 		break;
+	case SUPLA_SD_CALL_SET_CHANNEL_CONFIG:
+	    supla_log(LOG_DEBUG, "Received SET_CHANNEL_CONFIG from server!");
+	    break;
+	case SUPLA_SD_CALL_CHANNEL_CONFIG_FINISHED:
+	    supla_log(LOG_DEBUG, "Received CHANNEL_CONFIG_FINISHED from server!");
+	    break;
+	case SUPLA_SD_CALL_SET_DEVICE_CONFIG:
+	    supla_log(LOG_DEBUG, "Received SET_DEVICE_CONFIG from server!");
+	    break;
+    case SUPLA_SD_CALL_SET_DEVICE_CONFIG_RESULT:
+        supla_log(LOG_DEBUG, "Received SET_DEVICE_CONFIG_RESULT from server!");
+        break;
 	default:
 		supla_log(LOG_DEBUG, "Received unknown message from server!");
 		break;
@@ -754,7 +766,7 @@ static int supla_dev_get_channel_functions(supla_dev_t *dev)
 
 static int supla_dev_get_channel_config(supla_dev_t *dev)
 {
-	return srpc_ds_async_get_channel_config(dev->srpc, NULL); //FIXME
+	return srpc_ds_async_get_channel_config_request(dev->srpc, NULL); //FIXME
 }
 
 
