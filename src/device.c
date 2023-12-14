@@ -452,6 +452,18 @@ int supla_dev_free(supla_dev_t *dev)
 	return SUPLA_RESULT_TRUE;
 }
 
+int supla_dev_set_name(supla_dev_t *dev, const char *name)
+{
+    assert(NULL != dev);
+    assert(NULL != name);
+
+    lck_lock(dev->lck);
+    strncpy(dev->name,name,SUPLA_DEVICE_NAME_MAXSIZE-1);
+    lck_unlock(dev->lck);
+
+    return SUPLA_RESULT_TRUE;
+}
+
 int supla_dev_get_name(const supla_dev_t *dev, char *name, size_t len)
 {
 	assert(NULL != dev);
@@ -728,7 +740,7 @@ int supla_dev_start(supla_dev_t *dev)
 	supla_dev_state_t state;
 	supla_dev_get_state(dev, &state);
 
-	if(state != SUPLA_DEV_STATE_IDLE && state != SUPLA_DEV_STATE_CONFIG)
+	if(state != SUPLA_DEV_STATE_IDLE)
 		return SUPLA_RESULT_FALSE;
 
 	lck_lock(dev->lck);
@@ -893,5 +905,21 @@ int supla_dev_enter_config_mode(supla_dev_t *dev)
 	supla_dev_set_state(dev,SUPLA_DEV_STATE_CONFIG);
 	lck_unlock(dev->lck);
 	return SUPLA_RESULT_TRUE;
+}
+
+int supla_dev_exit_config_mode(supla_dev_t *dev)
+{
+    assert(NULL != dev);
+
+    supla_dev_state_t state;
+    supla_dev_get_state(dev, &state);
+
+    if(state != SUPLA_DEV_STATE_CONFIG)
+        return SUPLA_RESULT_FALSE;
+
+    lck_lock(dev->lck);
+    supla_dev_set_state(dev,SUPLA_DEV_STATE_IDLE);
+    lck_unlock(dev->lck);
+    return SUPLA_RESULT_TRUE;
 }
 

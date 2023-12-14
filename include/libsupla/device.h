@@ -136,6 +136,14 @@ supla_dev_t* supla_dev_create(const char *dev_name, const char *soft_ver);
  */
 int supla_dev_free(supla_dev_t *dev);
 
+/**
+ * @brief Set SUPLA device name
+ *
+ * @param[in] dev SUPLA device instance
+ * @param[in] name name buffer
+ * @return SUPLA_RESULT_TRUE on success
+ */
+int supla_dev_set_name(supla_dev_t *dev, const char *name);
 
 /**
  * @brief Get SUPLA device name
@@ -303,7 +311,7 @@ int supla_dev_set_config(supla_dev_t *dev, const struct supla_config *config);
 int supla_dev_get_config(supla_dev_t *dev, struct supla_config *config);
 
 /**
- * @brief Start SUPLA device activity if is offline
+ * @brief Start SUPLA device activity
  * or in config mode
  *
  * @param[in] dev SUPLA device instance
@@ -335,6 +343,14 @@ int supla_dev_iterate(supla_dev_t *dev);
  * @return SUPLA_RESULT_TRUE on success
  */
 int supla_dev_enter_config_mode(supla_dev_t *dev);
+
+/**
+ * @brief Exit config mode
+ *
+ * @param[in] dev SUPLA device instance
+ * @return SUPLA_RESULT_TRUE on success
+ */
+int supla_dev_exit_config_mode(supla_dev_t *dev);
 
 #ifdef __cplusplus
 }
