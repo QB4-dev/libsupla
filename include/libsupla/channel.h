@@ -132,7 +132,7 @@ typedef struct supla_channel_config {
 	int type;                                                     //SUPLA_CHANNELTYPE_*
 	union {
 		struct {
-			unsigned int supported_functions;                     //SUPLA_CHANNELFNC_*
+			unsigned int supported_functions;                     //SUPLA_BIT_FUNC_*
 			char sync_values_onchange;                            //sync values with server only when changed
 			int validity_time_sec;                                //measurement validity time for offline sensors
 		};
@@ -148,7 +148,7 @@ typedef struct supla_channel_config {
 	supla_channel_set_value_handler_t on_set_value;               //on set value request callback function
 	supla_channel_get_state_handler_t on_get_state;               //on get state request callback function
 	supla_channel_set_calcfg_handler_t on_calcfg_req;             //on calcfg request callback function
-	void *data;                                                    //channel context data defined by user
+	void *data;                                                   //channel context data defined by user
 } supla_channel_config_t;
 
 /**
@@ -225,6 +225,7 @@ int supla_channel_set_electricity_meter_value(supla_channel_t *ch, TElectricityM
 int supla_channel_set_thermostat_value(supla_channel_t *ch, TThermostat_Value *th);
 
 int supla_channel_set_extval(supla_channel_t *ch, TSuplaChannelExtendedValue *extval);
+int supla_channel_set_timer_state_extvalue(supla_channel_t *ch, TTimerState_ExtendedValue *tsev);
 int supla_channel_set_electricity_meter_extvalue(supla_channel_t *ch, TElectricityMeter_ExtendedValue_V2 *emx);
 int supla_channel_set_thermostat_extvalue(supla_channel_t *ch, TThermostat_ExtendedValue *thex);
 

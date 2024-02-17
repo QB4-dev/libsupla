@@ -35,10 +35,6 @@ supla_channel_t* supla_channel_create(const supla_channel_config_t* config)
 	case SUPLA_CHANNELTYPE_SENSORNC:
 	case SUPLA_CHANNELTYPE_DISTANCESENSOR:
 	case SUPLA_CHANNELTYPE_CALLBUTTON:
-	case SUPLA_CHANNELTYPE_RELAYHFD4:
-	case SUPLA_CHANNELTYPE_RELAYG5LA1A:
-	case SUPLA_CHANNELTYPE_2XRELAYG5LA1A:
-	case SUPLA_CHANNELTYPE_RELAY:
 	case SUPLA_CHANNELTYPE_THERMOMETERDS18B20:
 	case SUPLA_CHANNELTYPE_DHT11:
 	case SUPLA_CHANNELTYPE_DHT22:
@@ -65,6 +61,7 @@ supla_channel_t* supla_channel_create(const supla_channel_config_t* config)
 			goto malloc_failed;
 		supla_val_init(ch->supla_val,ch->config.sync_values_onchange);
 		break;
+    case SUPLA_CHANNELTYPE_RELAY:
 	case SUPLA_CHANNELTYPE_ELECTRICITY_METER:
 	case SUPLA_CHANNELTYPE_IMPULSE_COUNTER:
 	case SUPLA_CHANNELTYPE_THERMOSTAT:
@@ -291,7 +288,24 @@ int supla_channel_set_extval(supla_channel_t *ch, TSuplaChannelExtendedValue *ex
 	return rc;
 }
 
-int supla_channel_set_electricity_meter_extvalue(supla_channel_t *ch, TElectricityMeter_ExtendedValue_V2 *emx)
+int supla_channel_set_timer_state_extvalue(supla_channel_t *ch, TTimerState_ExtendedValue *tsev)
+{
+    assert(NULL != ch);
+
+    if(ch->config.type != SUPLA_CHANNELTYPE_RELAY){
+        supla_log(LOG_ERR,"ch[%d] cannot set timer extvalue: bad channel type",ch->number);
+        return SUPLA_RESULTCODE_CHANNEL_CONFLICT;
+    }
+
+    TSuplaChannelExtendedValue extval;
+
+    extval.type = EV_TYPE_TIMER_STATE_V1;
+    extval.size = sizeof(TTimerState_ExtendedValue);
+    memcpy(extval.value,tsev,extval.size);
+    return supla_channel_set_extval(ch,&extval);
+}
+
+int supla_channel_set_electricity_meter_extvalue(supla_channel_t *ch, TElectricityMeter_ExtendedValue_V2 *emev)
 {
 	assert(NULL != ch);
 
@@ -301,11 +315,11 @@ int supla_channel_set_electricity_meter_extvalue(supla_channel_t *ch, TElectrici
 	}
 
 	TSuplaChannelExtendedValue extval;
-	srpc_evtool_v2_emextended2extended(emx,&extval);
+	srpc_evtool_v2_emextended2extended(emev,&extval);
 	return supla_channel_set_extval(ch,&extval);
 }
 
-int supla_channel_set_thermostat_extvalue(supla_channel_t *ch, TThermostat_ExtendedValue *thex)
+int supla_channel_set_thermostat_extvalue(supla_channel_t *ch, TThermostat_ExtendedValue *thev)
 {
 	assert(NULL != ch);
 
@@ -315,7 +329,7 @@ int supla_channel_set_thermostat_extvalue(supla_channel_t *ch, TThermostat_Exten
 	}
 
 	TSuplaChannelExtendedValue extval;
-	srpc_evtool_v1_thermostatextended2extended(thex,&extval);
+	srpc_evtool_v1_thermostatextended2extended(thev,&extval);
 	return supla_channel_set_extval(ch,&extval);
 }
 
