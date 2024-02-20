@@ -270,16 +270,25 @@ static void supla_dev_on_get_channel_functions_result(supla_dev_t *dev, TSD_Chan
 	}
 }
 
-static void supla_dev_on_set_channel_config(supla_dev_t *dev, TSD_ChannelConfig *channel_config)
+static void supla_dev_on_set_channel_config(supla_dev_t *dev, TSD_ChannelConfig *ch_config)
 {
 	supla_log(LOG_DEBUG, "Received set channel config from server");
-	supla_log(LOG_DEBUG, "ch_cfg->num=%d %d",channel_config->ChannelNumber, channel_config->ConfigType);
+	supla_log(LOG_DEBUG, "ch_cfg->num=%d %d",ch_config->ChannelNumber, ch_config->ConfigType);
 }
 
-static void supla_dev_on_get_channel_config_result(supla_dev_t *dev, TSD_ChannelConfig *channel_config)
+static void supla_dev_on_get_channel_config_result(supla_dev_t *dev, TSD_ChannelConfig *ch_config)
 {
-    supla_log(LOG_DEBUG, "Received get channel config result from server");
-    supla_log(LOG_DEBUG, "ch_cfg->num=%d %d",channel_config->ChannelNumber, channel_config->ConfigType);
+    supla_log(LOG_DEBUG, "Received channel config result from server: ch[%d] type=%d func=%d",
+            ch_config->ChannelNumber, ch_config->ConfigType,ch_config->Func);
+
+    supla_channel_t *ch = supla_dev_get_channel_by_num(dev,ch_config->ChannelNumber);
+    if(ch){
+        supla_channel_set_active_function(ch,ch_config->Func);
+        if(ch->config.on_config_recv)
+            ch->config.on_config_recv(ch, ch_config);
+    } else {
+        supla_log(LOG_ERR,"channel[%d] not found", ch_config->ChannelNumber);
+    }
 }
 
 static void supla_dev_on_channel_config_finished(supla_dev_t *dev, TSD_ChannelConfigFinished *channel_config)
@@ -803,7 +812,17 @@ static int supla_dev_get_channel_functions(supla_dev_t *dev)
 
 static int supla_dev_get_channel_config(supla_dev_t *dev)
 {
-	return srpc_ds_async_get_channel_config_request(dev->srpc, NULL); //FIXME
+    supla_channel_t *ch;
+    TDS_GetChannelConfigRequest req = {};
+
+    STAILQ_FOREACH(ch,&dev->channels,channels){
+        if(ch->config.on_config_recv){
+            req.ChannelNumber = supla_channel_get_assigned_number(ch);
+            req.ConfigType = SUPLA_CONFIG_TYPE_DEFAULT;
+            srpc_ds_async_get_channel_config_request(dev->srpc, &req);
+        }
+    }
+	return SUPLA_RESULT_TRUE;
 }
 
 

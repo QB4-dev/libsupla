@@ -124,6 +124,8 @@ typedef int (*supla_channel_get_state_handler_t)(supla_channel_t *ch, TDSC_Chann
  */
 typedef int (*supla_channel_set_calcfg_handler_t)(supla_channel_t *ch, TSD_DeviceCalCfgRequest *calcfg);
 
+typedef int (*supla_channel_get_config_handler_t)(supla_channel_t *ch, TSD_ChannelConfig *chcfg);
+
 
 /**
  * SUPLA channel config structure
@@ -148,6 +150,7 @@ typedef struct supla_channel_config {
 	supla_channel_set_value_handler_t on_set_value;               //on set value request callback function
 	supla_channel_get_state_handler_t on_get_state;               //on get state request callback function
 	supla_channel_set_calcfg_handler_t on_calcfg_req;             //on calcfg request callback function
+	supla_channel_get_config_handler_t on_config_recv;            //on config received from server
 	void *data;                                                   //channel context data defined by user
 } supla_channel_config_t;
 
