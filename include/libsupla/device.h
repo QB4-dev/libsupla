@@ -43,19 +43,18 @@ extern "C" {
 typedef struct supla_dev supla_dev_t;
 
 typedef enum {
-	SUPLA_DEV_STATE_CONFIG,
-	SUPLA_DEV_STATE_IDLE,
-	SUPLA_DEV_STATE_INIT,
-	SUPLA_DEV_STATE_CONNECTED,
-	SUPLA_DEV_STATE_REGISTERED,
-	SUPLA_DEV_STATE_ONLINE,
-}supla_dev_state_t;
+    SUPLA_DEV_STATE_CONFIG,
+    SUPLA_DEV_STATE_IDLE,
+    SUPLA_DEV_STATE_INIT,
+    SUPLA_DEV_STATE_CONNECTED,
+    SUPLA_DEV_STATE_REGISTERED,
+    SUPLA_DEV_STATE_ONLINE,
+} supla_dev_state_t;
 
 struct manufacturer_data {
-	_supla_int16_t manufacturer_id;
-	_supla_int16_t product_id;
+    _supla_int16_t manufacturer_id;
+    _supla_int16_t product_id;
 };
-
 
 /**
  * @brief Function called on device state changed
@@ -117,8 +116,6 @@ typedef int (*supla_device_get_state_handler_t)(supla_dev_t *dev, TDSC_ChannelSt
  */
 typedef int (*on_server_time_sync_callback_t)(supla_dev_t *dev, TSDC_UserLocalTimeResult *lt);
 
-
-
 /**
  * @brief Create SUPLA device instance
  *
@@ -126,7 +123,7 @@ typedef int (*on_server_time_sync_callback_t)(supla_dev_t *dev, TSDC_UserLocalTi
  * @param[in] soft_ver Software version. Version "libsupla #version" will be set if soft_ver is NULL
  * @return SUPLA device instance or NULL if failed
  */
-supla_dev_t* supla_dev_create(const char *dev_name, const char *soft_ver);
+supla_dev_t *supla_dev_create(const char *dev_name, const char *soft_ver);
 
 /**
  * @brief Free SUPLA device instance and all internal allocated resources
@@ -200,7 +197,6 @@ int supla_dev_set_flags(supla_dev_t *dev, int flags);
  */
 int supla_dev_get_flags(const supla_dev_t *dev, int *flags);
 
-
 /**
  * @brief Set SUPLA device manufacturer data
  *
@@ -253,7 +249,8 @@ int supla_dev_set_state_changed_callback(supla_dev_t *dev, on_change_state_callb
  * @param[in] callback function called on every channel state request from server
  * @return SUPLA_RESULT_TRUE on success
  */
-int supla_dev_set_common_channel_state_callback(supla_dev_t *dev, supla_device_get_state_handler_t callback);
+int supla_dev_set_common_channel_state_callback(supla_dev_t                     *dev,
+                                                supla_device_get_state_handler_t callback);
 
 /**
  * @brief Set on receive user localtime from server callback function
@@ -262,7 +259,8 @@ int supla_dev_set_common_channel_state_callback(supla_dev_t *dev, supla_device_g
  * @param[in] callback function called on get user localtime response from server
  * @return SUPLA_RESULT_TRUE on success
  */
-int supla_dev_set_server_time_sync_callback(supla_dev_t *dev, on_server_time_sync_callback_t callback);
+int supla_dev_set_server_time_sync_callback(supla_dev_t                   *dev,
+                                            on_server_time_sync_callback_t callback);
 
 /**
  * @brief Add new channel to SUPLA device
@@ -357,5 +355,3 @@ int supla_dev_exit_config_mode(supla_dev_t *dev);
 #endif
 
 #endif /* SUPLA_DEVICE_H_ */
-
-

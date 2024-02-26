@@ -14,9 +14,9 @@ extern "C" {
 #include <libsupla/supla.h>
 
 typedef struct {
-	char sync;
-	char sync_onchange;
-	TSuplaChannelValue data;
+    char               sync;
+    char               sync_onchange;
+    TSuplaChannelValue data;
 } supla_value_t;
 
 void supla_val_init(supla_value_t *supla_val, char sync_onchange);

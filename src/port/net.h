@@ -9,7 +9,7 @@
 
 #include "arch.h"
 
-typedef void* supla_link_t;
+typedef void *supla_link_t;
 
 int supla_cloud_connect(supla_link_t *link, const char *host, int port, unsigned char ssl);
 int supla_cloud_send(supla_link_t link, void *buf, int count);

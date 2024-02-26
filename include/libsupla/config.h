@@ -27,8 +27,7 @@
 #if !defined(LIBSUPLA_ARCH)
 #error "LIBSUPLA_ARCH is not specified. Set -D LIBSUPLA_ARCH=..."
 #endif
-#endif  // !defined(LIBSUPLA_ARCH)
-
+#endif // !defined(LIBSUPLA_ARCH)
 
 #if LIBSUPLA_ARCH == LIBSUPLA_ARCH_ESP8266
 
@@ -43,6 +42,5 @@
 #endif
 
 #endif
-
 
 #endif /* LIBSUPLA_CONFIG_H_ */

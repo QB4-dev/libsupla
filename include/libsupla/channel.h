@@ -81,7 +81,8 @@ typedef struct supla_channel supla_channel_t;
  * @param[in] new_value new value from server
  * @return SUPLA_RESULT_TRUE on success or error number if failed
  */
-typedef int (*supla_channel_set_value_handler_t)(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value);
+typedef int (*supla_channel_set_value_handler_t)(supla_channel_t          *ch,
+                                                 TSD_SuplaChannelNewValue *new_value);
 
 /**
  * @brief Function called on get state request from server
@@ -122,36 +123,36 @@ typedef int (*supla_channel_get_state_handler_t)(supla_channel_t *ch, TDSC_Chann
  * @param[in] calcfg channel configuration from server
  * @return SUPLA_CALCFG_RESULT_DONE on success or SUPLA_CALCFG_RESULT_* error if failed
  */
-typedef int (*supla_channel_set_calcfg_handler_t)(supla_channel_t *ch, TSD_DeviceCalCfgRequest *calcfg);
+typedef int (*supla_channel_set_calcfg_handler_t)(supla_channel_t         *ch,
+                                                  TSD_DeviceCalCfgRequest *calcfg);
 
 typedef int (*supla_channel_get_config_handler_t)(supla_channel_t *ch, TSD_ChannelConfig *chcfg);
-
 
 /**
  * SUPLA channel config structure
  */
 typedef struct supla_channel_config {
-	int type;                                                     //SUPLA_CHANNELTYPE_*
-	union {
-		struct {
-			unsigned int supported_functions;                     //SUPLA_BIT_FUNC_*
-			char sync_values_onchange;                            //sync values with server only when changed
-			int validity_time_sec;                                //measurement validity time for offline sensors
-		};
-		struct {
-			unsigned int action_trigger_caps;                     //SUPLA_ACTION_CAP_*
-			unsigned int action_trigger_conflicts;                //SUPLA_ACTION_CAP_*
-			supla_channel_t **action_trigger_related_channel;     //related channel for action trigger
-		};
-	};
-	int default_function;                                         //SUPLA_CHANNELFNC_*
-	int flags;                                                    //SUPLA_CHANNEL_FLAG_*
+    int type; //SUPLA_CHANNELTYPE_*
+    union {
+        struct {
+            unsigned int supported_functions;  //SUPLA_BIT_FUNC_*
+            char         sync_values_onchange; //sync values with server only when changed
+            int          validity_time_sec;    //measurement validity time for offline sensors
+        };
+        struct {
+            unsigned int      action_trigger_caps;            //SUPLA_ACTION_CAP_*
+            unsigned int      action_trigger_conflicts;       //SUPLA_ACTION_CAP_*
+            supla_channel_t **action_trigger_related_channel; //related channel for action trigger
+        };
+    };
+    int default_function; //SUPLA_CHANNELFNC_*
+    int flags;            //SUPLA_CHANNEL_FLAG_*
 
-	supla_channel_set_value_handler_t on_set_value;               //on set value request callback function
-	supla_channel_get_state_handler_t on_get_state;               //on get state request callback function
-	supla_channel_set_calcfg_handler_t on_calcfg_req;             //on calcfg request callback function
-	supla_channel_get_config_handler_t on_config_recv;            //on config received from server
-	void *data;                                                   //channel context data defined by user
+    supla_channel_set_value_handler_t  on_set_value;   //on set value request callback function
+    supla_channel_get_state_handler_t  on_get_state;   //on get state request callback function
+    supla_channel_set_calcfg_handler_t on_calcfg_req;  //on calcfg request callback function
+    supla_channel_get_config_handler_t on_config_recv; //on config received from server
+    void                              *data;           //channel context data defined by user
 } supla_channel_config_t;
 
 /**
@@ -160,7 +161,7 @@ typedef struct supla_channel_config {
  * @param[in] cfg channel configuration
  * @return SUPLA_RESULT_TRUE on success
  */
-supla_channel_t* supla_channel_create(const supla_channel_config_t* config);
+supla_channel_t *supla_channel_create(const supla_channel_config_t *config);
 
 /**
  * @brief  Deinitialize SUPLA channel - free allocated memory
@@ -177,8 +178,7 @@ int supla_channel_free(supla_channel_t *ch);
  * @param[out] cfg channel config
  * @return SUPLA_RESULT_TRUE on success
  */
-int supla_channel_get_config(supla_channel_t *ch, supla_channel_config_t* config);
-
+int supla_channel_get_config(supla_channel_t *ch, supla_channel_config_t *config);
 
 /**
  * @brief  Get SUPLA channel data
@@ -214,7 +214,6 @@ int supla_channel_get_assigned_number(supla_channel_t *ch);
  */
 int supla_channel_get_active_function(supla_channel_t *ch, int *function);
 
-
 int supla_channel_set_value(supla_channel_t *ch, void *value, size_t len);
 int supla_channel_set_binary_value(supla_channel_t *ch, uint8_t value);
 int supla_channel_set_double_value(supla_channel_t *ch, double value);
@@ -229,7 +228,8 @@ int supla_channel_set_thermostat_value(supla_channel_t *ch, TThermostat_Value *t
 
 int supla_channel_set_extval(supla_channel_t *ch, TSuplaChannelExtendedValue *extval);
 int supla_channel_set_timer_state_extvalue(supla_channel_t *ch, TTimerState_ExtendedValue *tsev);
-int supla_channel_set_electricity_meter_extvalue(supla_channel_t *ch, TElectricityMeter_ExtendedValue_V2 *emx);
+int supla_channel_set_electricity_meter_extvalue(supla_channel_t                    *ch,
+                                                 TElectricityMeter_ExtendedValue_V2 *emx);
 int supla_channel_set_thermostat_extvalue(supla_channel_t *ch, TThermostat_ExtendedValue *thex);
 
 /**

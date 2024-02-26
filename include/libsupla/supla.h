@@ -19,13 +19,13 @@
 #include "supla-common/srpc.h"
 
 struct supla_config {
-	char email[SUPLA_EMAIL_MAXSIZE];
-	char server[SUPLA_SERVER_NAME_MAXSIZE];
-	char auth_key[SUPLA_AUTHKEY_SIZE];
-	char guid[SUPLA_GUID_SIZE];
-	char ssl;
-	int port;
-	int activity_timeout;
+    char email[SUPLA_EMAIL_MAXSIZE];
+    char server[SUPLA_SERVER_NAME_MAXSIZE];
+    char auth_key[SUPLA_AUTHKEY_SIZE];
+    char guid[SUPLA_GUID_SIZE];
+    char ssl;
+    int  port;
+    int  activity_timeout;
 };
 
 #endif /* LIBSUPLA_SUPLA_H_ */

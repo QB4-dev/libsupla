@@ -14,16 +14,16 @@ extern "C" {
 #include <libsupla/supla.h>
 
 typedef struct {
-	char sync;
-	TActionTriggerProperties properties;
-	TDS_ActionTrigger at;
+    char                     sync;
+    TActionTriggerProperties properties;
+    TDS_ActionTrigger        at;
 } supla_action_trigger_t;
 
 void supla_action_trigger_init(supla_action_trigger_t *supla_action_trigger);
 void supla_action_trigger_free(supla_action_trigger_t *supla_action_trigger);
 
-int supla_action_trigger_emit(supla_action_trigger_t *supla_action_trigger, const int ch_num, const _supla_int_t action);
-
+int supla_action_trigger_emit(supla_action_trigger_t *supla_action_trigger, const int ch_num,
+                              const _supla_int_t action);
 
 #ifdef __cplusplus
 }

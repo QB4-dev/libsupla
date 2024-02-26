@@ -20,16 +20,16 @@ extern "C" {
 
 /* SUPLA channel private data */
 struct supla_channel {
-	void *lck;
-	supla_channel_config_t config;
-	int number; //filled by device
-	int active_function; //may be changed by server
+    void                  *lck;
+    supla_channel_config_t config;
+    int                    number;          //filled by device
+    int                    active_function; //may be changed by server
 
-	supla_value_t *supla_val;
-	supla_extended_value_t *supla_extval;
-	supla_action_trigger_t *action_trigger;
+    supla_value_t          *supla_val;
+    supla_extended_value_t *supla_extval;
+    supla_action_trigger_t *action_trigger;
 
-	STAILQ_ENTRY(supla_channel) channels;   //other channels queued
+    STAILQ_ENTRY(supla_channel) channels; //other channels queued
 };
 
 /**
