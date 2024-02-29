@@ -145,8 +145,11 @@ typedef struct supla_channel_config {
             supla_channel_t **action_trigger_related_channel; //related channel for action trigger
         };
     };
-    int default_function; //SUPLA_CHANNELFNC_*
-    int flags;            //SUPLA_CHANNEL_FLAG_*
+    int           default_function; //SUPLA_CHANNELFNC_*
+    int           flags;            //SUPLA_CHANNEL_FLAG_*
+    unsigned char offline;
+    unsigned int  vlaue_validity_time;
+    unsigned char default_icon;
 
     supla_channel_set_value_handler_t  on_set_value;   //on set value request callback function
     supla_channel_get_state_handler_t  on_get_state;   //on get state request callback function
