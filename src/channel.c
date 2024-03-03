@@ -362,7 +362,7 @@ TDS_SuplaDeviceChannel_D supla_channel_to_register_struct(supla_channel_t *ch)
     reg_channel.Default = ch->config.default_function;
     reg_channel.Flags = ch->config.flags;
     reg_channel.Offline = ch->config.offline;
-    reg_channel.ValueValidityTimeSec = ch->config.validity_time_sec;
+    reg_channel.ValueValidityTimeSec = ch->config.value_validity_time;
     reg_channel.DefaultIcon = ch->config.default_icon;
 
     if (ch->config.type == SUPLA_CHANNELTYPE_ACTIONTRIGGER) {
@@ -407,9 +407,10 @@ void supla_channel_sync(void *srpc, supla_channel_t *ch)
     lck_lock(ch->lck);
     if (ch->supla_val && !ch->supla_val->sync) {
         supla_log(LOG_DEBUG, "sync channel[%d] val ", ch->number);
-        ch->supla_val->sync = srpc_ds_async_channel_value_changed_c(
-            srpc, ch->number, ch->supla_val->data.value, 0, ch->config.validity_time_sec);
-        //TODO support offline flag
+        ch->supla_val->sync = srpc_ds_async_channel_value_changed_c(srpc, ch->number,
+                                                                    ch->supla_val->data.value,
+                                                                    ch->config.offline,
+                                                                    ch->config.value_validity_time);
     }
 
     if (ch->supla_extval && !ch->supla_extval->sync) {

@@ -126,6 +126,13 @@ typedef int (*supla_channel_get_state_handler_t)(supla_channel_t *ch, TDSC_Chann
 typedef int (*supla_channel_set_calcfg_handler_t)(supla_channel_t         *ch,
                                                   TSD_DeviceCalCfgRequest *calcfg);
 
+/**
+ * @brief Function called on channel config received from server
+ *
+ * @param[in] ch called channel
+ * @param[in] chcfg channel configuration from server
+ * @return SUPLA_RESULT_TRUE on success or error number if failed
+ */
 typedef int (*supla_channel_get_config_handler_t)(supla_channel_t *ch, TSD_ChannelConfig *chcfg);
 
 /**
@@ -137,7 +144,6 @@ typedef struct supla_channel_config {
         struct {
             unsigned int supported_functions;  //SUPLA_BIT_FUNC_*
             char         sync_values_onchange; //sync values with server only when changed
-            int          validity_time_sec;    //measurement validity time for offline sensors
         };
         struct {
             unsigned int      action_trigger_caps;            //SUPLA_ACTION_CAP_*
@@ -148,7 +154,7 @@ typedef struct supla_channel_config {
     int           default_function; //SUPLA_CHANNELFNC_*
     int           flags;            //SUPLA_CHANNEL_FLAG_*
     unsigned char offline;
-    unsigned int  vlaue_validity_time;
+    unsigned int  value_validity_time;
     unsigned char default_icon;
 
     supla_channel_set_value_handler_t  on_set_value;   //on set value request callback function

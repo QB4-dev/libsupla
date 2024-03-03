@@ -321,6 +321,12 @@ static void supla_dev_on_set_device_config_result(supla_dev_t                *de
     supla_log(LOG_DEBUG, "Received set device config result from server");
 }
 
+static void supla_dev_on_set_channel_caption_result(supla_dev_t *dev, TSCD_SetCaptionResult *result)
+{
+    supla_log(LOG_DEBUG, "Received set ch[%d] caption result from server: %s",
+              result->ChannelNumber, result->Caption);
+}
+
 static void supla_dev_on_remote_call_received(void *_srpc, unsigned int rr_id,
                                               unsigned int call_type, void *_dcd,
                                               unsigned char proto_version)
@@ -392,6 +398,9 @@ static void supla_dev_on_remote_call_received(void *_srpc, unsigned int rr_id,
         break;
     case SUPLA_SD_CALL_SET_DEVICE_CONFIG_RESULT:
         supla_dev_on_set_device_config_result(dev, rd.data.sds_set_device_config_result);
+        break;
+    case SUPLA_SCD_CALL_SET_CHANNEL_CAPTION_RESULT:
+        supla_dev_on_set_channel_caption_result(dev, rd.data.scd_set_caption_result);
         break;
     default:
         supla_log(LOG_DEBUG, "Received unknown message from server!");
