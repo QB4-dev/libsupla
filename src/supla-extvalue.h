@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 <qb4.dev@gmail.com>
+ * Copyright (c) 2024 <qb4.dev@gmail.com>
  *
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
@@ -14,8 +14,8 @@ extern "C" {
 #include <libsupla/supla.h>
 
 typedef struct {
-    char                       sync;
-    char                       sync_onchange;
+    char sync;
+    char sync_onchange;
     TSuplaChannelExtendedValue extval;
 } supla_extended_value_t;
 

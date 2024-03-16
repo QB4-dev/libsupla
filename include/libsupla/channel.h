@@ -13,6 +13,7 @@ extern "C" {
 
 #include <sys/queue.h>
 #include "supla.h"
+#include "push-notification.h"
 
 /**
  * @brief SUPLA channel instance
@@ -81,8 +82,7 @@ typedef struct supla_channel supla_channel_t;
  * @param[in] new_value new value from server
  * @return SUPLA_RESULT_TRUE on success or error number if failed
  */
-typedef int (*supla_channel_set_value_handler_t)(supla_channel_t          *ch,
-                                                 TSD_SuplaChannelNewValue *new_value);
+typedef int (*supla_channel_set_value_handler_t)(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value);
 
 /**
  * @brief Function called on get state request from server
@@ -123,8 +123,7 @@ typedef int (*supla_channel_get_state_handler_t)(supla_channel_t *ch, TDSC_Chann
  * @param[in] calcfg channel configuration from server
  * @return SUPLA_CALCFG_RESULT_DONE on success or SUPLA_CALCFG_RESULT_* error if failed
  */
-typedef int (*supla_channel_set_calcfg_handler_t)(supla_channel_t         *ch,
-                                                  TSD_DeviceCalCfgRequest *calcfg);
+typedef int (*supla_channel_set_calcfg_handler_t)(supla_channel_t *ch, TSD_DeviceCalCfgRequest *calcfg);
 
 /**
  * @brief Function called on channel config received from server
@@ -142,26 +141,28 @@ typedef struct supla_channel_config {
     int type; //SUPLA_CHANNELTYPE_*
     union {
         struct {
-            unsigned int supported_functions;  //SUPLA_BIT_FUNC_*
-            char         sync_values_onchange; //sync values with server only when changed
+            unsigned int supported_functions; //SUPLA_BIT_FUNC_*
+            char sync_values_onchange;        //sync values with server only when changed
         };
         struct {
-            unsigned int      action_trigger_caps;            //SUPLA_ACTION_CAP_*
-            unsigned int      action_trigger_conflicts;       //SUPLA_ACTION_CAP_*
+            unsigned int action_trigger_caps;                 //SUPLA_ACTION_CAP_*
+            unsigned int action_trigger_conflicts;            //SUPLA_ACTION_CAP_*
             supla_channel_t **action_trigger_related_channel; //related channel for action trigger
         };
     };
-    int           default_function; //SUPLA_CHANNELFNC_*
-    int           flags;            //SUPLA_CHANNEL_FLAG_*
+    int default_function; //SUPLA_CHANNELFNC_*
+    int flags;            //SUPLA_CHANNEL_FLAG_*
     unsigned char offline;
-    unsigned int  value_validity_time;
+    unsigned int value_validity_time;
     unsigned char default_icon;
+    supla_push_notification_config_t push_notification; //PUSH notification config
 
-    supla_channel_set_value_handler_t  on_set_value;   //on set value request callback function
-    supla_channel_get_state_handler_t  on_get_state;   //on get state request callback function
+    supla_channel_set_value_handler_t on_set_value;    //on set value request callback function
+    supla_channel_get_state_handler_t on_get_state;    //on get state request callback function
     supla_channel_set_calcfg_handler_t on_calcfg_req;  //on calcfg request callback function
     supla_channel_get_config_handler_t on_config_recv; //on config received from server
-    void                              *data;           //channel context data defined by user
+
+    void *data; //channel context data defined by user
 } supla_channel_config_t;
 
 /**
@@ -237,8 +238,7 @@ int supla_channel_set_thermostat_value(supla_channel_t *ch, TThermostat_Value *t
 
 int supla_channel_set_extval(supla_channel_t *ch, TSuplaChannelExtendedValue *extval);
 int supla_channel_set_timer_state_extvalue(supla_channel_t *ch, TTimerState_ExtendedValue *tsev);
-int supla_channel_set_electricity_meter_extvalue(supla_channel_t                    *ch,
-                                                 TElectricityMeter_ExtendedValue_V2 *emx);
+int supla_channel_set_electricity_meter_extvalue(supla_channel_t *ch, TElectricityMeter_ExtendedValue_V2 *emx);
 int supla_channel_set_thermostat_extvalue(supla_channel_t *ch, TThermostat_ExtendedValue *thex);
 
 /**

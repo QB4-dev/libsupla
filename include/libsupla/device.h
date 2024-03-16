@@ -13,6 +13,7 @@ extern "C" {
 
 #include "supla.h"
 #include "channel.h"
+#include "push-notification.h"
 
 /**
  * @brief SUPLA device instance.
@@ -249,8 +250,7 @@ int supla_dev_set_state_changed_callback(supla_dev_t *dev, on_change_state_callb
  * @param[in] callback function called on every channel state request from server
  * @return SUPLA_RESULT_TRUE on success
  */
-int supla_dev_set_common_channel_state_callback(supla_dev_t                     *dev,
-                                                supla_device_get_state_handler_t callback);
+int supla_dev_set_common_channel_state_callback(supla_dev_t *dev, supla_device_get_state_handler_t callback);
 
 /**
  * @brief Set on receive user localtime from server callback function
@@ -259,8 +259,7 @@ int supla_dev_set_common_channel_state_callback(supla_dev_t                     
  * @param[in] callback function called on get user localtime response from server
  * @return SUPLA_RESULT_TRUE on success
  */
-int supla_dev_set_server_time_sync_callback(supla_dev_t                   *dev,
-                                            on_server_time_sync_callback_t callback);
+int supla_dev_set_server_time_sync_callback(supla_dev_t *dev, on_server_time_sync_callback_t callback);
 
 /**
  * @brief Add new channel to SUPLA device
@@ -307,6 +306,34 @@ int supla_dev_set_config(supla_dev_t *dev, const struct supla_config *config);
  * @return SUPLA_RESULT_TRUE on success
  */
 int supla_dev_get_config(supla_dev_t *dev, struct supla_config *config);
+
+/**
+ * @brief enable SUPLA device device-level notification
+ *
+ * @param[in] dev SUPLA device instance
+ * @param[in] server_managed_fields fields managed by server. See PN_SERVER_MANAGED_* in proto.h
+ * @return SUPLA_RESULT_TRUE on success
+ */
+int supla_dev_enable_notifications(supla_dev_t *dev, const unsigned char server_managed_fields);
+
+/**
+ * @brief disable SUPLA device device-level notification
+ *
+ * @param[in] dev SUPLA device instance
+ * @return SUPLA_RESULT_TRUE on success
+ */
+int supla_dev_disable_notifications(supla_dev_t *dev);
+
+/**
+ * @brief SUPLA device send notification
+ *
+ * @param[in] dev SUPLA device instance
+ * @param[in] title notification title
+ * @param[in] message notification message
+ * @param[in] sound_id sound id
+ * @return SUPLA_RESULT_TRUE on success
+ */
+int supla_dev_send_notification(supla_dev_t *dev, int ctx, const char *title, const char *message, int sound_id);
 
 /**
  * @brief Start SUPLA device activity

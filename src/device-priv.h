@@ -14,34 +14,38 @@ extern "C" {
 #include <assert.h>
 #include <libsupla/device.h>
 
+#include "../include/libsupla/push-notification.h"
+
 /* device private data */
 struct supla_dev {
-	char name[SUPLA_DEVICE_NAME_MAXSIZE];
-	char soft_ver[SUPLA_SOFTVER_MAXSIZE];
-	struct manufacturer_data mfr_data;
-	int flags; //SUPLA_DEVICE_FLAG_*
+    char name[SUPLA_DEVICE_NAME_MAXSIZE];
+    char soft_ver[SUPLA_SOFTVER_MAXSIZE];
+    struct manufacturer_data mfr_data;
+    int flags; //SUPLA_DEVICE_FLAG_*
 
-	supla_dev_state_t state;
-	struct supla_config supla_config;
+    supla_dev_state_t state;
+    struct supla_config supla_config;
 
-	supla_link_t cloud_link;
-	void *srpc;
-	void *lck;
+    supla_link_t cloud_link;
+    void *srpc;
+    void *lck;
 
-	on_change_state_callback_t on_state_change;
-	supla_device_get_state_handler_t on_get_channel_state;
-	on_server_time_sync_callback_t on_server_time_sync;
+    on_change_state_callback_t on_state_change;
+    supla_device_get_state_handler_t on_get_channel_state;
+    on_server_time_sync_callback_t on_server_time_sync;
 
-	struct timeval init_time;
-	struct timeval reg_time;
-	struct timeval last_ping;
-	struct timeval last_resp;
+    supla_push_notification_config_t push_notification;
 
-	time_t uptime;
-	time_t connection_uptime;
-	unsigned char connection_reset_cause;
+    struct timeval init_time;
+    struct timeval reg_time;
+    struct timeval last_ping;
+    struct timeval last_resp;
 
-	STAILQ_HEAD(qhead,supla_channel) channels;
+    time_t uptime;
+    time_t connection_uptime;
+    unsigned char connection_reset_cause;
+
+    STAILQ_HEAD(qhead, supla_channel) channels;
 };
 
 #ifdef __cplusplus

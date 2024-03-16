@@ -199,7 +199,7 @@ int supla_channel_set_double_value(supla_channel_t *ch, double value)
 int supla_channel_set_humidtemp_value(supla_channel_t *ch, double humid, double temp)
 {
     //TODO check channel type
-    char    out[SUPLA_CHANNELVALUE_SIZE];
+    char out[SUPLA_CHANNELVALUE_SIZE];
     int32_t t = temp * 1000.0;
     int32_t h = humid * 1000.0;
     memcpy(&out[0], &t, 4);
@@ -257,8 +257,7 @@ int supla_channel_set_electricity_meter_value(supla_channel_t *ch, TElectricityM
     assert(NULL != ch);
 
     if (ch->config.type != SUPLA_CHANNELTYPE_ELECTRICITY_METER) {
-        supla_log(LOG_ERR, "ch[%d] cannot set electricity meter value: bad channel type",
-                  ch->number);
+        supla_log(LOG_ERR, "ch[%d] cannot set electricity meter value: bad channel type", ch->number);
         return SUPLA_RESULTCODE_CHANNEL_CONFLICT;
     }
     return supla_channel_set_value(ch, em, sizeof(TElectricityMeter_Value));
@@ -303,14 +302,12 @@ int supla_channel_set_timer_state_extvalue(supla_channel_t *ch, TTimerState_Exte
     return supla_channel_set_extval(ch, &extval);
 }
 
-int supla_channel_set_electricity_meter_extvalue(supla_channel_t                    *ch,
-                                                 TElectricityMeter_ExtendedValue_V2 *emev)
+int supla_channel_set_electricity_meter_extvalue(supla_channel_t *ch, TElectricityMeter_ExtendedValue_V2 *emev)
 {
     assert(NULL != ch);
 
     if (ch->config.type != SUPLA_CHANNELTYPE_ELECTRICITY_METER) {
-        supla_log(LOG_ERR, "ch[%d] cannot set electricity meter extvalue: bad channel type",
-                  ch->number);
+        supla_log(LOG_ERR, "ch[%d] cannot set electricity meter extvalue: bad channel type", ch->number);
         return SUPLA_RESULTCODE_CHANNEL_CONFLICT;
     }
 
@@ -354,7 +351,7 @@ TDS_SuplaDeviceChannel_D supla_channel_to_register_struct(supla_channel_t *ch)
 {
     assert(NULL != ch);
     TDS_SuplaDeviceChannel_D reg_channel;
-    int                      rel_num = 0;
+    int rel_num = 0;
 
     lck_lock(ch->lck);
     reg_channel.Number = ch->number;
@@ -367,8 +364,7 @@ TDS_SuplaDeviceChannel_D supla_channel_to_register_struct(supla_channel_t *ch)
 
     if (ch->config.type == SUPLA_CHANNELTYPE_ACTIONTRIGGER) {
         if (ch->config.action_trigger_related_channel) {
-            rel_num =
-                supla_channel_get_assigned_number(*ch->config.action_trigger_related_channel) + 1;
+            rel_num = supla_channel_get_assigned_number(*ch->config.action_trigger_related_channel) + 1;
             ch->action_trigger->properties.relatedChannelNumber = rel_num;
         }
 
@@ -407,22 +403,20 @@ void supla_channel_sync(void *srpc, supla_channel_t *ch)
     lck_lock(ch->lck);
     if (ch->supla_val && !ch->supla_val->sync) {
         supla_log(LOG_DEBUG, "sync channel[%d] val ", ch->number);
-        ch->supla_val->sync = srpc_ds_async_channel_value_changed_c(srpc, ch->number,
-                                                                    ch->supla_val->data.value,
-                                                                    ch->config.offline,
-                                                                    ch->config.value_validity_time);
+        ch->supla_val->sync = srpc_ds_async_channel_value_changed_c(srpc, ch->number, ch->supla_val->data.value,
+                                                                    ch->config.offline, ch->config.value_validity_time);
     }
 
     if (ch->supla_extval && !ch->supla_extval->sync) {
         supla_log(LOG_DEBUG, "sync channel[%d] extval", ch->number);
 
-        ch->supla_extval->sync = srpc_ds_async_channel_extendedvalue_changed(
-            srpc, ch->number, &ch->supla_extval->extval);
+        ch->supla_extval->sync =
+            srpc_ds_async_channel_extendedvalue_changed(srpc, ch->number, &ch->supla_extval->extval);
     }
 
     if (ch->action_trigger && !ch->action_trigger->sync) {
-        supla_log(LOG_DEBUG, "sync channel[%d] action ch[%d]->%d", ch->number,
-                  ch->action_trigger->at.ChannelNumber, ch->action_trigger->at.ActionTrigger);
+        supla_log(LOG_DEBUG, "sync channel[%d] action ch[%d]->%d", ch->number, ch->action_trigger->at.ChannelNumber,
+                  ch->action_trigger->at.ActionTrigger);
 
         ch->action_trigger->sync = srpc_ds_async_action_trigger(srpc, &ch->action_trigger->at);
     }
