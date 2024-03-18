@@ -120,11 +120,11 @@ static void supla_connection_on_register_result(supla_dev_t *dev, TSD_SuplaRegis
 static void supla_dev_on_set_channel_value(supla_dev_t *dev, TSD_SuplaChannelNewValue *new_value)
 {
     char success = 0;
-    supla_log(LOG_DEBUG, "channel[%d] set value request", new_value->ChannelNumber);
+    supla_log(LOG_DEBUG, "ch[%d] set value request", new_value->ChannelNumber);
 
     supla_channel_t *ch = supla_dev_get_channel_by_num(dev, new_value->ChannelNumber);
     if (!ch) {
-        supla_log(LOG_ERR, "channel[%d] not found", new_value->ChannelNumber);
+        supla_log(LOG_ERR, "ch[%d] not found", new_value->ChannelNumber);
         success = 0;
     } else if (ch->config.on_set_value) {
         success = ch->config.on_set_value(ch, new_value);
@@ -145,7 +145,7 @@ static void supla_dev_on_set_channel_group_value(supla_dev_t *dev, TSD_SuplaChan
 
     supla_channel_t *ch = supla_dev_get_channel_by_num(dev, new_value.ChannelNumber);
     if (!ch) {
-        supla_log(LOG_ERR, "channel[%d] not found", new_value.ChannelNumber);
+        supla_log(LOG_ERR, "ch[%d] not found", new_value.ChannelNumber);
         success = 0;
     } else if (ch->config.on_set_value) {
         success = ch->config.on_set_value(ch, &new_value);
@@ -156,7 +156,7 @@ static void supla_dev_on_set_channel_group_value(supla_dev_t *dev, TSD_SuplaChan
 static void supla_dev_get_channel_state(supla_dev_t *dev, TCSD_ChannelStateRequest *channel_state_request)
 {
     TDSC_ChannelState state = {};
-    supla_log(LOG_DEBUG, "get channel[%d] state", channel_state_request->ChannelNumber);
+    supla_log(LOG_DEBUG, "get ch[%d] state", channel_state_request->ChannelNumber);
 
     state.ReceiverID = channel_state_request->SenderID;
     state.ChannelNumber = channel_state_request->ChannelNumber;
@@ -180,7 +180,7 @@ static void supla_dev_get_channel_state(supla_dev_t *dev, TCSD_ChannelStateReque
         if (ch->config.on_get_state)
             ch->config.on_get_state(ch, &state);
     } else {
-        supla_log(LOG_ERR, "channel[%d] not found", channel_state_request->ChannelNumber);
+        supla_log(LOG_ERR, "ch[%d] not found", channel_state_request->ChannelNumber);
     }
     srpc_csd_async_channel_state_result(dev->srpc, &state);
 }
@@ -244,7 +244,7 @@ static void supla_dev_on_calcfg_request(supla_dev_t *dev, TSD_DeviceCalCfgReques
             else
                 result.Result = SUPLA_CALCFG_RESULT_NOT_SUPPORTED;
         } else {
-            supla_log(LOG_ERR, "channel[%d] not found", calcfg->ChannelNumber);
+            supla_log(LOG_ERR, "ch[%d] not found", calcfg->ChannelNumber);
             result.Result = SUPLA_CALCFG_RESULT_ID_NOT_EXISTS;
         }
     }
@@ -645,7 +645,6 @@ int supla_dev_add_channel(supla_dev_t *dev, supla_channel_t *ch)
     int channel_count;
 
     channel_count = supla_dev_get_channel_count(dev);
-
     if (channel_count + 1 >= SUPLA_CHANNELMAXCOUNT) {
         supla_log(LOG_ERR, "[%s] cannot add channel: channel max count reached", dev->name);
         return SUPLA_RESULT_FALSE;
@@ -876,6 +875,23 @@ static int supla_dev_time_sync(supla_dev_t *dev)
         return SUPLA_RESULT_FALSE;
 }
 
+static int supla_dev_set_channel_captions(supla_dev_t *dev)
+{
+    supla_channel_t *ch;
+    TDCS_SetCaption req = {};
+
+    STAILQ_FOREACH(ch, &dev->channels, channels)
+    {
+        if (ch->config.default_caption) {
+            req.ChannelNumber = supla_channel_get_assigned_number(ch);
+            strncpy(req.Caption, ch->config.default_caption, SUPLA_CAPTION_MAXSIZE - 1);
+            req.CaptionSize = strnlen(req.Caption, SUPLA_CAPTION_MAXSIZE) + 1;
+            srpc_dcs_async_set_channel_caption(dev->srpc, &req);
+        }
+    }
+    return SUPLA_RESULT_TRUE;
+}
+
 static int supla_dev_get_channel_functions(supla_dev_t *dev)
 {
     return srpc_ds_async_get_channel_functions(dev->srpc);
@@ -973,6 +989,7 @@ static int supla_dev_iterate_tick(supla_dev_t *dev)
 
     case SUPLA_DEV_STATE_REGISTERED:
         supla_dev_time_sync(dev);
+        supla_dev_set_channel_captions(dev);
         supla_dev_get_channel_functions(dev);
         supla_dev_get_channel_config(dev);
         supla_dev_register_push_notifications(dev);

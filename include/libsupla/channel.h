@@ -155,6 +155,7 @@ typedef struct supla_channel_config {
     unsigned char offline;
     unsigned int value_validity_time;
     unsigned char default_icon;
+    const char *default_caption;                        //default caption set by device
     supla_push_notification_config_t push_notification; //PUSH notification config
 
     supla_channel_set_value_handler_t on_set_value;    //on set value request callback function
