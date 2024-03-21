@@ -135,6 +135,18 @@ typedef int (*supla_channel_set_calcfg_handler_t)(supla_channel_t *ch, TSD_Devic
 typedef int (*supla_channel_get_config_handler_t)(supla_channel_t *ch, TSD_ChannelConfig *chcfg);
 
 /**
+ * @brief Function called to set channel config on server
+ * Following fields are already set on function call:
+ * req->ChannelNumber
+ * req->ConfigType
+ *
+ * @param[in] ch called channel
+ * @param[in] chcfg channel configuration
+ * @return SUPLA_RESULT_TRUE on success or error number if failed
+ */
+typedef int (*supla_channel_set_config_handler_t)(supla_channel_t *ch, TSDS_SetChannelConfig *chcfg);
+
+/**
  * SUPLA channel config structure
  */
 typedef struct supla_channel_config {
@@ -161,7 +173,9 @@ typedef struct supla_channel_config {
     supla_channel_set_value_handler_t on_set_value;    //on set value request callback function
     supla_channel_get_state_handler_t on_get_state;    //on get state request callback function
     supla_channel_set_calcfg_handler_t on_calcfg_req;  //on calcfg request callback function
-    supla_channel_get_config_handler_t on_config_recv; //on config received from server
+    supla_channel_set_config_handler_t on_config_set;  //on set channel config request
+    supla_channel_get_config_handler_t on_config_recv; //on default config received from server
+    supla_channel_get_config_handler_t on_sched_recv;  //on schedule received from server
 
     void *data; //channel context data defined by user
 } supla_channel_config_t;

@@ -265,30 +265,55 @@ static void supla_dev_on_get_channel_functions_result(supla_dev_t *dev, TSD_Chan
     }
 }
 
-static void supla_dev_on_set_channel_config(supla_dev_t *dev, TSD_ChannelConfig *ch_config)
+static void supla_dev_on_srv_set_channel_config(supla_dev_t *dev, TSD_ChannelConfig *ch_cfg)
 {
-    supla_log(LOG_DEBUG, "Received set channel config from server");
-    supla_log(LOG_DEBUG, "ch_cfg->num=%d %d", ch_config->ChannelNumber, ch_config->ConfigType);
-}
+    supla_log(LOG_DEBUG, "Received set channel config from server: ch[%d] type=%d func=%d size=%d",
+              ch_cfg->ChannelNumber, ch_cfg->ConfigType, ch_cfg->Func, ch_cfg->ConfigSize);
 
-static void supla_dev_on_get_channel_config_result(supla_dev_t *dev, TSD_ChannelConfig *ch_config)
-{
-    supla_log(LOG_DEBUG, "Received channel config result from server: ch[%d] type=%d func=%d", ch_config->ChannelNumber,
-              ch_config->ConfigType, ch_config->Func);
-
-    supla_channel_t *ch = supla_dev_get_channel_by_num(dev, ch_config->ChannelNumber);
+    supla_channel_t *ch = supla_dev_get_channel_by_num(dev, ch_cfg->ChannelNumber);
     if (ch) {
-        supla_channel_set_active_function(ch, ch_config->Func);
+        supla_channel_set_active_function(ch, ch_cfg->Func);
         if (ch->config.on_config_recv)
-            ch->config.on_config_recv(ch, ch_config);
+            ch->config.on_config_recv(ch, ch_cfg);
     } else {
-        supla_log(LOG_ERR, "channel[%d] not found", ch_config->ChannelNumber);
+        supla_log(LOG_ERR, "channel[%d] not found", ch_cfg->ChannelNumber);
     }
 }
 
-static void supla_dev_on_channel_config_finished(supla_dev_t *dev, TSD_ChannelConfigFinished *channel_config)
+static void supla_dev_on_get_channel_config_result(supla_dev_t *dev, TSD_ChannelConfig *ch_cfg)
 {
-    supla_log(LOG_DEBUG, "Received channel %d config finished from server", channel_config->ChannelNumber);
+    supla_log(LOG_DEBUG, "Received get channel config result from server: ch[%d] type=%d func=%d size=%d",
+              ch_cfg->ChannelNumber, ch_cfg->ConfigType, ch_cfg->Func, ch_cfg->ConfigSize);
+
+    TSDS_SetChannelConfig req = {};
+
+    supla_channel_t *ch = supla_dev_get_channel_by_num(dev, ch_cfg->ChannelNumber);
+    if (ch) {
+        supla_channel_set_active_function(ch, ch_cfg->Func);
+        if (ch->config.on_config_recv)
+            ch->config.on_config_recv(ch, ch_cfg);
+
+        /* If this config is empty */
+        if (ch_cfg->ConfigSize == 0 && ch->config.on_config_set) {
+            req.ConfigType = ch_cfg->ConfigType;
+            req.ChannelNumber = ch_cfg->ChannelNumber;
+            ch->config.on_config_set(ch, &req);
+            srpc_ds_async_set_channel_config_request(dev->srpc, &req);
+        }
+    } else {
+        supla_log(LOG_ERR, "channel[%d] not found", ch_cfg->ChannelNumber);
+    }
+}
+
+static void supla_dev_on_set_channel_config_result(supla_dev_t *dev, TSDS_SetChannelConfigResult *result)
+{
+    supla_log(LOG_DEBUG, "Received set channel config result from server: ch[%d] type=%d res=%d", result->ChannelNumber,
+              result->ConfigType, result->Result);
+}
+
+static void supla_dev_on_channel_config_finished(supla_dev_t *dev, TSD_ChannelConfigFinished *ch_cfg)
+{
+    supla_log(LOG_DEBUG, "Received channel %d config finished from server", ch_cfg->ChannelNumber);
 }
 
 static void supla_dev_on_set_device_config(supla_dev_t *dev, TSDS_SetDeviceConfig *device_config)
@@ -367,10 +392,13 @@ static void supla_dev_on_remote_call_received(void *_srpc, unsigned int rr_id, u
         supla_dev_on_get_channel_functions_result(dev, rd.data.sd_channel_functions);
         break;
     case SUPLA_SD_CALL_SET_CHANNEL_CONFIG:
-        supla_dev_on_set_channel_config(dev, rd.data.sd_channel_config);
+        supla_dev_on_srv_set_channel_config(dev, rd.data.sd_channel_config);
         break;
     case SUPLA_SD_CALL_GET_CHANNEL_CONFIG_RESULT:
         supla_dev_on_get_channel_config_result(dev, rd.data.sd_channel_config);
+        break;
+    case SUPLA_SD_CALL_SET_CHANNEL_CONFIG_RESULT:
+        supla_dev_on_set_channel_config_result(dev, rd.data.sds_set_channel_config_result);
         break;
     case SUPLA_SD_CALL_CHANNEL_CONFIG_FINISHED:
         supla_dev_on_channel_config_finished(dev, rd.data.sd_channel_config_finished);
@@ -875,6 +903,13 @@ static int supla_dev_time_sync(supla_dev_t *dev)
         return SUPLA_RESULT_FALSE;
 }
 
+//static int supla_dev_set_device_config(supla_dev_t *dev)
+//{
+//    TSDS_SetDeviceConfig devcfg = {};
+//    //TODO
+//    return srpc_ds_async_set_device_config_request(dev->srpc, &devcfg);
+//}
+
 static int supla_dev_set_channel_captions(supla_dev_t *dev)
 {
     supla_channel_t *ch;
@@ -897,7 +932,7 @@ static int supla_dev_get_channel_functions(supla_dev_t *dev)
     return srpc_ds_async_get_channel_functions(dev->srpc);
 }
 
-static int supla_dev_get_channel_config(supla_dev_t *dev)
+static int supla_dev_get_channel_configurations(supla_dev_t *dev)
 {
     supla_channel_t *ch;
     TDS_GetChannelConfigRequest req = {};
@@ -907,6 +942,15 @@ static int supla_dev_get_channel_config(supla_dev_t *dev)
         if (ch->config.on_config_recv) {
             req.ChannelNumber = supla_channel_get_assigned_number(ch);
             req.ConfigType = SUPLA_CONFIG_TYPE_DEFAULT;
+            srpc_ds_async_get_channel_config_request(dev->srpc, &req);
+        }
+        if (ch->config.on_sched_recv) {
+            req.ChannelNumber = supla_channel_get_assigned_number(ch);
+
+            req.ConfigType = SUPLA_CONFIG_TYPE_WEEKLY_SCHEDULE;
+            srpc_ds_async_get_channel_config_request(dev->srpc, &req);
+
+            req.ConfigType = SUPLA_CONFIG_TYPE_ALT_WEEKLY_SCHEDULE;
             srpc_ds_async_get_channel_config_request(dev->srpc, &req);
         }
     }
@@ -991,7 +1035,7 @@ static int supla_dev_iterate_tick(supla_dev_t *dev)
         supla_dev_time_sync(dev);
         supla_dev_set_channel_captions(dev);
         supla_dev_get_channel_functions(dev);
-        supla_dev_get_channel_config(dev);
+        supla_dev_get_channel_configurations(dev);
         supla_dev_register_push_notifications(dev);
         supla_dev_set_state(dev, SUPLA_DEV_STATE_ONLINE);
         break;

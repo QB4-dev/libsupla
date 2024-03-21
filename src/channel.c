@@ -27,6 +27,14 @@ supla_channel_t *supla_channel_create(const supla_channel_config_t *config)
     if (ch->config.on_get_state)
         ch->config.flags |= SUPLA_CHANNEL_FLAG_CHANNELSTATE;
 
+    /* set SUPLA_CHANNEL_FLAG_RUNTIME_CHANNEL_CONFIG_UPDATE if on_config_recv callback is set */
+    if (ch->config.on_config_recv)
+        ch->config.flags |= SUPLA_CHANNEL_FLAG_RUNTIME_CHANNEL_CONFIG_UPDATE;
+
+    /* set SUPLA_CHANNEL_FLAG_WEEKLY_SCHEDULE if on_sched_recv callback is set */
+    if (ch->config.on_sched_recv)
+        ch->config.flags |= SUPLA_CHANNEL_FLAG_WEEKLY_SCHEDULE;
+
     ch->number = -1;
     ch->active_function = ch->config.default_function;
 
