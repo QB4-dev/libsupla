@@ -35,7 +35,7 @@ struct supla_channel {
 /**
  * @brief  convert channel to Supla proto channel definition
  */
-TDS_SuplaDeviceChannel_D supla_channel_to_register_struct(supla_channel_t *ch);
+TDS_SuplaDeviceChannel_E supla_channel_to_register_struct(supla_channel_t *ch);
 
 /**
  * @brief  Set active channel function(may be changed by server)

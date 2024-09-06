@@ -310,7 +310,7 @@ int supla_channel_set_timer_state_extvalue(supla_channel_t *ch, TTimerState_Exte
     return supla_channel_set_extval(ch, &extval);
 }
 
-int supla_channel_set_electricity_meter_extvalue(supla_channel_t *ch, TElectricityMeter_ExtendedValue_V2 *emev)
+int supla_channel_set_electricity_meter_extvalue(supla_channel_t *ch, TElectricityMeter_ExtendedValue_V3 *emev)
 {
     assert(NULL != ch);
 
@@ -320,7 +320,7 @@ int supla_channel_set_electricity_meter_extvalue(supla_channel_t *ch, TElectrici
     }
 
     TSuplaChannelExtendedValue extval;
-    srpc_evtool_v2_emextended2extended(emev, &extval);
+    srpc_evtool_v3_emextended2extended(emev, &extval);
     return supla_channel_set_extval(ch, &extval);
 }
 
@@ -355,10 +355,10 @@ int supla_channel_emit_action(supla_channel_t *ch, const _supla_int_t action)
 }
 
 //private functions
-TDS_SuplaDeviceChannel_D supla_channel_to_register_struct(supla_channel_t *ch)
+TDS_SuplaDeviceChannel_E supla_channel_to_register_struct(supla_channel_t *ch)
 {
     assert(NULL != ch);
-    TDS_SuplaDeviceChannel_D reg_channel;
+    TDS_SuplaDeviceChannel_E reg_channel;
     int rel_num = 0;
 
     lck_lock(ch->lck);
@@ -369,6 +369,7 @@ TDS_SuplaDeviceChannel_D supla_channel_to_register_struct(supla_channel_t *ch)
     reg_channel.Offline = ch->config.offline;
     reg_channel.ValueValidityTimeSec = ch->config.value_validity_time;
     reg_channel.DefaultIcon = ch->config.default_icon;
+    reg_channel.SubDeviceId = ch->config.subdevice_id;
 
     if (ch->config.type == SUPLA_CHANNELTYPE_ACTIONTRIGGER) {
         if (ch->config.action_trigger_related_channel) {

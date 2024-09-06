@@ -869,7 +869,7 @@ int supla_dev_stop(supla_dev_t *dev)
 
 static int supla_dev_register(supla_dev_t *dev)
 {
-    TDS_SuplaRegisterDevice_F reg_dev = { 0 };
+    TDS_SuplaRegisterDevice_G reg_dev = { 0 };
     supla_channel_t *ch;
     uint8_t ch_num = 0;
 
@@ -892,7 +892,7 @@ static int supla_dev_register(supla_dev_t *dev)
 
     gettimeofday(&dev->reg_time, NULL);
     supla_log(LOG_INFO, "[%s] register device...", dev->name);
-    return srpc_ds_async_registerdevice_f(dev->srpc, &reg_dev);
+    return srpc_ds_async_registerdevice_g(dev->srpc, &reg_dev);
 }
 
 static int supla_dev_time_sync(supla_dev_t *dev)

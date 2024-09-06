@@ -20,7 +20,7 @@ int supla_delay_ms(const unsigned int ms)
 int supla_cloud_connect(supla_link_t *link, const char *host, int port, unsigned char ssl)
 {
     *link = ssocket_client_init(host, port, ssl);
-    return ssocket_client_connect(*link, NULL, NULL);
+    return ssocket_client_connect(*link, NULL, NULL, 500);
 }
 
 int supla_cloud_send(supla_link_t link, void *buf, int count)
@@ -51,9 +51,9 @@ typedef struct {
 
 int supla_cloud_connect(supla_link_t *link, const char *host, int port, unsigned char ssl)
 {
-    struct addrinfo  hints;
+    struct addrinfo hints;
     struct addrinfo *result, *rp = NULL;
-    int              rc;
+    int rc;
 
     socket_data_t *ssd = malloc(sizeof(socket_data_t));
     if (!ssd)

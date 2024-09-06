@@ -541,6 +541,11 @@ vector<int> SrpcTest::get_call_ids(int version) {
     case 23:
       return {SUPLA_SC_CALL_CHANNELPACK_UPDATE_E,
               SUPLA_DS_CALL_REGISTER_DEVICE_F};
+
+    case 25:
+      return {SUPLA_DS_CALL_REGISTER_DEVICE_G,
+              SUPLA_SD_CALL_REGISTER_DEVICE_RESULT_B,
+              SUPLA_DS_CALL_SET_SUBDEVICE_DETAILS};
   }
 
   return {};
@@ -591,6 +596,12 @@ TEST_F(SrpcTest, call_allowed_v19) { srpcCallAllowed(19, get_call_ids(19)); }
 TEST_F(SrpcTest, call_allowed_v20) { srpcCallAllowed(20, get_call_ids(20)); }
 
 TEST_F(SrpcTest, call_allowed_v21) { srpcCallAllowed(21, get_call_ids(21)); }
+
+TEST_F(SrpcTest, call_allowed_v23) { srpcCallAllowed(23, get_call_ids(23)); }
+
+#if SUPLA_PROTO_VERSION >= 25
+TEST_F(SrpcTest, call_allowed_v25) { srpcCallAllowed(25, get_call_ids(25)); }
+#endif /*SUPLA_PROTO_VERSION >= 25*/
 
 TEST_F(SrpcTest, call_not_allowed) {
   vector<int> all_calls;
@@ -1584,6 +1595,95 @@ TEST_F(SrpcTest, call_registerdevice_f_wrong_size) {
   srpc = NULL;
 }
 
+#if SUPLA_PROTO_VERSION >= 25
+TEST_F(SrpcTest, call_registerdevice_g) {
+  data_read_result = -1;
+  srpc = srpcInit();
+  ASSERT_FALSE(srpc == NULL);
+
+  DECLARE_WITH_RANDOM(TDS_SuplaRegisterDevice_G, registerdevice);
+
+  registerdevice.channel_count = SUPLA_CHANNELMAXCOUNT;
+
+  ASSERT_GT(srpc_ds_async_registerdevice_g(srpc, &registerdevice), 0);
+  SendAndReceive(SUPLA_DS_CALL_REGISTER_DEVICE_G, 5215);
+
+  ASSERT_FALSE(cr_rd.data.ds_register_device_g == NULL);
+  ASSERT_EQ(memcmp(cr_rd.data.ds_register_device_g, &registerdevice,
+                   sizeof(TDS_SuplaRegisterDevice_G)),
+            0);
+
+  free(cr_rd.data.ds_register_device_e);
+  srpc_free(srpc);
+  srpc = NULL;
+}
+
+TEST_F(SrpcTest, call_registerdevice_g_one_channel) {
+  data_read_result = -1;
+  srpc = srpcInit();
+  ASSERT_FALSE(srpc == NULL);
+
+  DECLARE_WITH_RANDOM(TDS_SuplaRegisterDevice_G, registerdevice);
+
+  registerdevice.channels[0].Number = 1;
+  registerdevice.channels[0].Type = 1;
+  registerdevice.channel_count = 1;
+
+  ASSERT_GT(srpc_ds_async_registerdevice_g(srpc, &registerdevice), 0);
+  SendAndReceive(SUPLA_DS_CALL_REGISTER_DEVICE_G, 643);
+
+  ASSERT_FALSE(cr_rd.data.ds_register_device_g == NULL);
+  ASSERT_EQ(memcmp(cr_rd.data.ds_register_device_g, &registerdevice,
+                   sizeof(TDS_SuplaRegisterDevice_G) -
+                       (sizeof(TDS_SuplaDeviceChannel_E) *
+                        (SUPLA_CHANNELMAXCOUNT - 1))),
+            0);
+
+  free(cr_rd.data.ds_register_device_g);
+  srpc_free(srpc);
+  srpc = NULL;
+}
+
+TEST_F(SrpcTest, call_registerdevice_g_without_channels) {
+  data_read_result = -1;
+  srpc = srpcInit();
+  ASSERT_FALSE(srpc == NULL);
+
+  DECLARE_WITH_RANDOM(TDS_SuplaRegisterDevice_G, registerdevice);
+
+  registerdevice.channel_count = 0;
+
+  ASSERT_GT(srpc_ds_async_registerdevice_g(srpc, &registerdevice), 0);
+  SendAndReceive(SUPLA_DS_CALL_REGISTER_DEVICE_G, 607);
+
+  ASSERT_FALSE(cr_rd.data.ds_register_device_g == NULL);
+  ASSERT_EQ(
+      memcmp(cr_rd.data.ds_register_device_g, &registerdevice,
+             sizeof(TDS_SuplaRegisterDevice_G) -
+                 (sizeof(TDS_SuplaDeviceChannel_E) * (SUPLA_CHANNELMAXCOUNT))),
+      0);
+
+  free(cr_rd.data.ds_register_device_g);
+  srpc_free(srpc);
+  srpc = NULL;
+}
+
+TEST_F(SrpcTest, call_registerdevice_g_wrong_size) {
+  data_read_result = -1;
+  srpc = srpcInit();
+  ASSERT_FALSE(srpc == NULL);
+
+  DECLARE_WITH_RANDOM(TDS_SuplaRegisterDevice_G, registerdevice);
+
+  registerdevice.channel_count = SUPLA_CHANNELMAXCOUNT + 1;
+
+  ASSERT_EQ(srpc_ds_async_registerdevice_g(srpc, &registerdevice), 0);
+
+  srpc_free(srpc);
+  srpc = NULL;
+}
+#endif /*SUPLA_PROTO_VERSION >= 25*/
+
 TEST_F(SrpcTest, call_registerdevice_result) {
   data_read_result = -1;
   srpc = srpcInit();
@@ -1612,6 +1712,14 @@ TEST_F(SrpcTest, call_registerdevice_result) {
   srpc = NULL;
 }
 
+#if SUPLA_PROTO_VERSION >= 25
+SRPC_CALL_BASIC_TEST_WITH_SIZE_PARAM(srpc_sd_async_registerdevice_result_b,
+                                     TSD_SuplaRegisterDeviceResult_B,
+                                     SUPLA_SD_CALL_REGISTER_DEVICE_RESULT_B, 32,
+                                     288, sd_register_device_result_b,
+                                     CHANNEL_REPORT_MAXSIZE, channel_report,
+                                     channel_report_size);
+#endif /*SUPLA_PROTO_VERSION >= 25*/
 //---------------------------------------------------------
 // DS CHANNEL VALUE CHANGED
 //---------------------------------------------------------
@@ -3299,6 +3407,132 @@ TEST_F(SrpcTest, srpc_evtool_emev_v2to1) {
   ASSERT_EQ(memcmp(emev_v1.m, emev_v2.m, sizeof(emev_v1.m)), 0);
 }
 
+TEST_F(SrpcTest, evtool_electricity_meter_value_v3_to_extended) {
+  TSuplaChannelExtendedValue ev;
+  DECLARE_WITH_RANDOM(TElectricityMeter_ExtendedValue_V3, em_ev_src);
+  TElectricityMeter_ExtendedValue_V3 em_ev_dst;
+
+  memset(&em_ev_dst, 0, sizeof(TElectricityMeter_ExtendedValue_V3));
+  em_ev_src.m_count = EM_MEASUREMENT_COUNT;
+
+  ASSERT_EQ(1, srpc_evtool_v3_emextended2extended(&em_ev_src, &ev));
+  ASSERT_EQ(1, srpc_evtool_v3_extended2emextended(&ev, &em_ev_dst));
+
+  ASSERT_EQ(0, memcmp(&em_ev_src, &em_ev_dst,
+                      sizeof(TElectricityMeter_ExtendedValue_V3)));
+
+  ASSERT_EQ(1, srpc_evtool_v3_emextended2extended(&em_ev_src, &ev));
+  ASSERT_EQ(0, srpc_evtool_v3_emextended2extended(NULL, &ev));
+  ASSERT_EQ(0, srpc_evtool_v3_emextended2extended(&em_ev_src, NULL));
+
+  em_ev_src.m_count = -1;
+  ASSERT_EQ(0, srpc_evtool_v3_emextended2extended(&em_ev_src, &ev));
+
+  em_ev_src.m_count = EM_MEASUREMENT_COUNT + 1;
+  ASSERT_EQ(0, srpc_evtool_v3_emextended2extended(&em_ev_src, &ev));
+
+  em_ev_src.m_count = EM_MEASUREMENT_COUNT;
+  ASSERT_EQ(1, srpc_evtool_v3_emextended2extended(&em_ev_src, &ev));
+  ASSERT_EQ(0, srpc_evtool_v3_extended2emextended(NULL, &em_ev_dst));
+  ASSERT_EQ(0, srpc_evtool_v3_extended2emextended(&ev, NULL));
+
+  ev.type = 0;
+  ASSERT_EQ(0, srpc_evtool_v3_extended2emextended(&ev, &em_ev_dst));
+
+  ev.type = EV_TYPE_ELECTRICITY_METER_MEASUREMENT_V3;
+  ev.size = 0;
+  ASSERT_EQ(0, srpc_evtool_v3_extended2emextended(&ev, &em_ev_dst));
+
+  ev.size = sizeof(TElectricityMeter_ExtendedValue_V3) + 1;
+  ASSERT_EQ(0, srpc_evtool_v3_extended2emextended(&ev, &em_ev_dst));
+
+  ev.size = sizeof(TElectricityMeter_ExtendedValue_V3) - 1;
+  ASSERT_EQ(0, srpc_evtool_v3_extended2emextended(&ev, &em_ev_dst));
+}
+
+TEST_F(SrpcTest, srpc_evtool_emev_v2to3) {
+  DECLARE_WITH_RANDOM(TElectricityMeter_ExtendedValue_V2, emev_v2);
+  TElectricityMeter_ExtendedValue_V3 emev_v3;
+  memset(&emev_v3, 0, sizeof(TElectricityMeter_ExtendedValue_V3));
+
+  ASSERT_EQ(srpc_evtool_emev_v2to3(NULL, &emev_v3), 0);
+  ASSERT_EQ(srpc_evtool_emev_v2to3(&emev_v2, NULL), 0);
+  ASSERT_EQ(srpc_evtool_emev_v2to3(&emev_v2, &emev_v3), 1);
+
+  for (int a = 0; a < 3; a++) {
+    ASSERT_EQ(emev_v2.total_forward_active_energy[a],
+              emev_v3.total_forward_active_energy[a]);
+    ASSERT_EQ(emev_v2.total_reverse_active_energy[a],
+              emev_v3.total_reverse_active_energy[a]);
+    ASSERT_EQ(emev_v2.total_forward_reactive_energy[a],
+              emev_v3.total_forward_reactive_energy[a]);
+    ASSERT_EQ(emev_v2.total_reverse_reactive_energy[a],
+              emev_v3.total_reverse_reactive_energy[a]);
+  }
+
+  ASSERT_EQ(emev_v2.total_forward_active_energy_balanced,
+            emev_v3.total_forward_active_energy_balanced);
+  ASSERT_EQ(emev_v2.total_reverse_active_energy_balanced,
+            emev_v3.total_reverse_active_energy_balanced);
+
+  emev_v2.measured_values ^=
+      emev_v2.measured_values & EM_VAR_VOLTAGE_PHASE_ANGLE_12;
+
+  emev_v2.measured_values ^=
+      emev_v2.measured_values & EM_VAR_VOLTAGE_PHASE_ANGLE_13;
+
+  emev_v2.measured_values ^=
+      emev_v2.measured_values & EM_VAR_VOLTAGE_PHASE_SEQUENCE;
+
+  emev_v2.measured_values ^=
+      emev_v2.measured_values & EM_VAR_CURRENT_PHASE_SEQUENCE;
+
+  ASSERT_EQ(emev_v2.total_cost, emev_v3.total_cost);
+  ASSERT_EQ(emev_v2.total_cost_balanced, emev_v3.total_cost_balanced);
+  ASSERT_EQ(emev_v2.price_per_unit, emev_v3.price_per_unit);
+  ASSERT_EQ(
+      memcmp(emev_v2.currency, emev_v3.currency, sizeof(emev_v3.currency)), 0);
+  ASSERT_EQ(emev_v2.measured_values, emev_v3.measured_values);
+  ASSERT_EQ(emev_v2.period, emev_v3.period);
+  ASSERT_EQ(emev_v2.m_count, emev_v3.m_count);
+  ASSERT_EQ(memcmp(emev_v2.m, emev_v3.m, sizeof(emev_v3.m)), 0);
+}
+
+TEST_F(SrpcTest, evtool_electricity_meter_value_to_latest) {
+  DECLARE_WITH_RANDOM(TElectricityMeter_ExtendedValue, em_ev1);
+  DECLARE_WITH_RANDOM(TElectricityMeter_ExtendedValue_V2, em_ev2);
+
+  em_ev1.m_count = EM_MEASUREMENT_COUNT;
+  em_ev2.m_count = EM_MEASUREMENT_COUNT;
+
+  TSuplaChannelExtendedValue ev1 = {};
+  TSuplaChannelExtendedValue ev2 = {};
+
+  EXPECT_TRUE(srpc_evtool_v1_emextended2extended(&em_ev1, &ev1));
+  EXPECT_TRUE(srpc_evtool_v2_emextended2extended(&em_ev2, &ev2));
+
+  TElectricityMeter_ExtendedValue_V3 em_ev3;
+  EXPECT_TRUE(srpc_evtool_extended2emextended_latest(&ev1, &em_ev3));
+
+  for (int a = 0; a < 3; a++) {
+    ASSERT_EQ(em_ev1.total_forward_active_energy[a],
+              em_ev3.total_forward_active_energy[a]);
+  }
+
+  ASSERT_EQ(memcmp(em_ev1.m, em_ev3.m, sizeof(em_ev3.m)), 0);
+
+  em_ev3 = {};
+
+  EXPECT_TRUE(srpc_evtool_extended2emextended_latest(&ev2, &em_ev3));
+
+  for (int a = 0; a < 3; a++) {
+    ASSERT_EQ(em_ev2.total_forward_active_energy[a],
+              em_ev3.total_forward_active_energy[a]);
+  }
+
+  ASSERT_EQ(memcmp(em_ev2.m, em_ev3.m, sizeof(em_ev3.m)), 0);
+}
+
 TEST_F(SrpcTest, evtool_input_counter_value_to_extended) {
   ASSERT_GE((unsigned int)SUPLA_CHANNELEXTENDEDVALUE_SIZE,
             sizeof(TSC_ImpulseCounter_ExtendedValue));
@@ -4157,5 +4391,16 @@ SRPC_CALL_BASIC_TEST_WITH_SIZE_PARAM(srpc_sc_async_get_channel_value_result,
                                      1078, sc_get_value_result,
                                      SUPLA_CHANNELEXTENDEDVALUE_SIZE,
                                      ExtendedValue.value, ExtendedValue.size);
+
+//---------------------------------------------------------
+// SET SUBDEVICE DETAILS
+//---------------------------------------------------------
+
+#if SUPLA_PROTO_VERSION >= 25
+SRPC_CALL_BASIC_TEST(srpc_ds_async_set_subdevice_details, TDS_SubdeviceDetails,
+                     SUPLA_DS_CALL_SET_SUBDEVICE_DETAILS, 348,
+                     ds_subdevice_details);
+
+#endif /*SUPLA_PROTO_VERSION >= 25*/
 
 }  // namespace

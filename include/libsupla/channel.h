@@ -167,6 +167,7 @@ typedef struct supla_channel_config {
     unsigned char offline;
     unsigned int value_validity_time;
     unsigned char default_icon;
+    unsigned char subdevice_id;
     const char *default_caption;                        //default caption set by device
     supla_push_notification_config_t push_notification; //PUSH notification config
 
@@ -253,7 +254,7 @@ int supla_channel_set_thermostat_value(supla_channel_t *ch, TThermostat_Value *t
 
 int supla_channel_set_extval(supla_channel_t *ch, TSuplaChannelExtendedValue *extval);
 int supla_channel_set_timer_state_extvalue(supla_channel_t *ch, TTimerState_ExtendedValue *tsev);
-int supla_channel_set_electricity_meter_extvalue(supla_channel_t *ch, TElectricityMeter_ExtendedValue_V2 *emx);
+int supla_channel_set_electricity_meter_extvalue(supla_channel_t *ch, TElectricityMeter_ExtendedValue_V3 *emx);
 int supla_channel_set_thermostat_extvalue(supla_channel_t *ch, TThermostat_ExtendedValue *thex);
 
 /**

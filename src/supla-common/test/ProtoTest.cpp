@@ -57,7 +57,9 @@ TEST_F(ProtoTest, check_size_of_structures_and_types) {
   EXPECT_EQ((unsigned int)3264, sizeof(TDS_SuplaRegisterDevice_D));
   EXPECT_EQ((unsigned int)3784, sizeof(TDS_SuplaRegisterDevice_E));
   EXPECT_EQ((unsigned int)5064, sizeof(TDS_SuplaRegisterDevice_F));
+  EXPECT_EQ((unsigned int)5192, sizeof(TDS_SuplaRegisterDevice_G));
   EXPECT_EQ((unsigned int)7, sizeof(TSD_SuplaRegisterDeviceResult));
+  EXPECT_EQ((unsigned int)265, sizeof(TSD_SuplaRegisterDeviceResult_B));
   EXPECT_EQ((unsigned int)9, sizeof(TDS_SuplaDeviceChannelValue));
   EXPECT_EQ((unsigned int)10, sizeof(TDS_SuplaDeviceChannelValue_B));
   EXPECT_EQ((unsigned int)14, sizeof(TDS_SuplaDeviceChannelValue_C));
@@ -109,6 +111,7 @@ TEST_F(ProtoTest, check_size_of_structures_and_types) {
   EXPECT_EQ((unsigned int)62, sizeof(TElectricityMeter_Measurement));
   EXPECT_EQ((unsigned int)429, sizeof(TElectricityMeter_ExtendedValue));
   EXPECT_EQ((unsigned int)449, sizeof(TElectricityMeter_ExtendedValue_V2));
+  EXPECT_EQ((unsigned int)454, sizeof(TElectricityMeter_ExtendedValue_V3));
   EXPECT_EQ((unsigned int)5, sizeof(TElectricityMeter_Value));
   EXPECT_EQ((unsigned int)40, sizeof(TSC_ImpulseCounter_ExtendedValue));
   EXPECT_EQ((unsigned int)8, sizeof(TSC_ImpulseCounter_Value));
@@ -130,6 +133,8 @@ TEST_F(ProtoTest, check_size_of_structures_and_types) {
   EXPECT_LE(sizeof(TElectricityMeter_ExtendedValue),
             (unsigned int)SUPLA_CHANNELEXTENDEDVALUE_SIZE);
   EXPECT_LE(sizeof(TElectricityMeter_ExtendedValue_V2),
+            (unsigned int)SUPLA_CHANNELEXTENDEDVALUE_SIZE);
+  EXPECT_LE(sizeof(TElectricityMeter_ExtendedValue_V3),
             (unsigned int)SUPLA_CHANNELEXTENDEDVALUE_SIZE);
 
   EXPECT_EQ((unsigned int)4, sizeof(TThermostat_Time));
@@ -209,8 +214,8 @@ TEST_F(ProtoTest, check_size_of_structures_and_types) {
   EXPECT_LE(sizeof(TChannelConfig_StaircaseTimer),
             (unsigned int)SUPLA_CHANNEL_CONFIG_MAXSIZE);
 
-  EXPECT_EQ(sizeof(TChannelConfig_Rollershutter), 8);
-  EXPECT_LE(sizeof(TChannelConfig_Rollershutter),
+  EXPECT_EQ(sizeof(TChannelConfig_RollerShutter), 44);
+  EXPECT_LE(sizeof(TChannelConfig_RollerShutter),
             (unsigned int)SUPLA_CHANNEL_CONFIG_MAXSIZE);
 
   EXPECT_EQ(sizeof(TChannelConfig_ActionTrigger), 4);
@@ -238,11 +243,7 @@ TEST_F(ProtoTest, check_size_of_structures_and_types) {
   EXPECT_LE(sizeof(TCalCfg_RollerShutterSettings),
             (unsigned int)SUPLA_CHANNEL_CONFIG_MAXSIZE);
 
-  EXPECT_EQ(static_cast<size_t>(13), sizeof(TCalCfg_FacadeBlindSettings));
-  EXPECT_LE(sizeof(TCalCfg_FacadeBlindSettings),
-            static_cast<size_t>(SUPLA_CHANNEL_CONFIG_MAXSIZE));
-
-  EXPECT_EQ(static_cast<size_t>(13), sizeof(TChannelConfig_FacadeBlind));
+  EXPECT_EQ(static_cast<size_t>(53), sizeof(TChannelConfig_FacadeBlind));
   EXPECT_LE(sizeof(TChannelConfig_FacadeBlind),
             static_cast<size_t>(SUPLA_CHANNEL_CONFIG_MAXSIZE));
 
@@ -268,10 +269,10 @@ TEST_F(ProtoTest, check_size_of_structures_and_types) {
   EXPECT_EQ((unsigned int)901, sizeof(TCS_ActionWithAuth));
   EXPECT_EQ((unsigned int)13, sizeof(TSC_ActionExecutionResult));
 
-  EXPECT_EQ((unsigned int)16, sizeof(TAction_RS_Parameters));
+  EXPECT_EQ((unsigned int)16, sizeof(TAction_ShadingSystem_Parameters));
   EXPECT_EQ((unsigned int)16, sizeof(TAction_RGBW_Parameters));
 
-  EXPECT_LE(sizeof(TAction_RS_Parameters),
+  EXPECT_LE(sizeof(TAction_ShadingSystem_Parameters),
             (unsigned int)SUPLA_ACTION_PARAM_MAXSIZE);
   EXPECT_LE(sizeof(TAction_RGBW_Parameters),
             (unsigned int)SUPLA_ACTION_PARAM_MAXSIZE);
@@ -315,6 +316,24 @@ TEST_F(ProtoTest, check_size_of_structures_and_types) {
 
   EXPECT_EQ(sizeof(TChannelConfig_GeneralPurposeMeter), 111);
   EXPECT_LE(sizeof(TChannelConfig_GeneralPurposeMeter),
+            (unsigned int)SUPLA_CHANNEL_CONFIG_MAXSIZE);
+
+  EXPECT_EQ(sizeof(TDS_SubdeviceDetails), 325);
+
+  EXPECT_EQ(sizeof(TChannelConfig_OCR), 291);
+  EXPECT_LE(sizeof(TChannelConfig_OCR),
+            (unsigned int)SUPLA_CHANNEL_CONFIG_MAXSIZE);
+
+  EXPECT_EQ(sizeof(TChannelConfig_ImpulseCounter), 61);
+  EXPECT_LE(sizeof(TChannelConfig_ImpulseCounter),
+            (unsigned int)SUPLA_CHANNEL_CONFIG_MAXSIZE);
+
+  EXPECT_EQ(sizeof(TChannelConfig_ElectricityMeter), 72);
+  EXPECT_LE(sizeof(TChannelConfig_ElectricityMeter),
+            (unsigned int)SUPLA_CHANNEL_CONFIG_MAXSIZE);
+
+  EXPECT_EQ(sizeof(TChannelConfig_PowerSwitch), 42);
+  EXPECT_LE(sizeof(TChannelConfig_PowerSwitch),
             (unsigned int)SUPLA_CHANNEL_CONFIG_MAXSIZE);
 }
 
