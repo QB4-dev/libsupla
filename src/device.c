@@ -199,13 +199,11 @@ static void supla_dev_on_set_activity_timeout_result(supla_dev_t *dev, TSDC_Supl
 static void supla_dev_on_get_user_localtime_result(supla_dev_t *dev, TSDC_UserLocalTimeResult *lt)
 {
     time_t local = 0;
-
     supla_log(LOG_DEBUG, "Received user localtime result: %4d-%02d-%02d %02d:%02d:%02d %s", lt->year, lt->month,
               lt->day, lt->hour, lt->min, lt->sec, lt->timezone);
     if (dev->on_server_time_sync) {
         if (dev->on_server_time_sync(dev, lt) == 0) {
             time(&local);
-            supla_log(LOG_INFO, "device time sync success: %s", strtok(ctime(&local), "\n"));
             /* update timers */
             dev->init_time.tv_sec = local - dev->uptime;
             dev->register_time.tv_sec = local - dev->connection_uptime;
@@ -886,32 +884,33 @@ int supla_dev_stop(supla_dev_t *dev)
     return SUPLA_RESULT_TRUE;
 }
 
+static TDS_SuplaDeviceChannel_E get_channel_data_callback(void *dev, int ch_num)
+{
+    supla_channel_t *ch = supla_dev_get_channel_by_num(dev, ch_num);
+    return supla_channel_to_register_struct(ch);
+}
+
 static int supla_dev_register(supla_dev_t *dev)
 {
-    TDS_SuplaRegisterDevice_G reg_dev = { 0 };
+    TDS_SuplaRegisterDeviceHeader reg_dev_hdr = { 0 };
     supla_channel_t *ch;
-    uint8_t ch_num = 0;
 
-    strncpy(reg_dev.Email, dev->supla_config.email, SUPLA_EMAIL_MAXSIZE);
-    strncpy(reg_dev.AuthKey, dev->supla_config.auth_key, SUPLA_AUTHKEY_SIZE);
-    strncpy(reg_dev.GUID, dev->supla_config.guid, SUPLA_GUID_SIZE);
-    strncpy(reg_dev.Name, dev->name, SUPLA_DEVICE_NAME_MAXSIZE);
-    strncpy(reg_dev.SoftVer, dev->soft_ver, SUPLA_SOFTVER_MAXSIZE);
-    strncpy(reg_dev.ServerName, dev->supla_config.server, SUPLA_SERVER_NAME_MAXSIZE);
-    reg_dev.Flags = dev->flags;
-    reg_dev.ManufacturerID = dev->mfr_data.manufacturer_id;
-    reg_dev.ProductID = dev->mfr_data.product_id;
-
+    strncpy(reg_dev_hdr.Email, dev->supla_config.email, SUPLA_EMAIL_MAXSIZE);
+    strncpy(reg_dev_hdr.AuthKey, dev->supla_config.auth_key, SUPLA_AUTHKEY_SIZE);
+    strncpy(reg_dev_hdr.GUID, dev->supla_config.guid, SUPLA_GUID_SIZE);
+    strncpy(reg_dev_hdr.Name, dev->name, SUPLA_DEVICE_NAME_MAXSIZE);
+    strncpy(reg_dev_hdr.SoftVer, dev->soft_ver, SUPLA_SOFTVER_MAXSIZE);
+    strncpy(reg_dev_hdr.ServerName, dev->supla_config.server, SUPLA_SERVER_NAME_MAXSIZE);
+    reg_dev_hdr.Flags = dev->flags;
+    reg_dev_hdr.ManufacturerID = dev->mfr_data.manufacturer_id;
+    reg_dev_hdr.ProductID = dev->mfr_data.product_id;
     STAILQ_FOREACH(ch, &dev->channels, channels)
     {
-        reg_dev.channels[ch_num] = supla_channel_to_register_struct(ch);
-        ch_num++;
+        reg_dev_hdr.channel_count++;
     }
-    reg_dev.channel_count = ch_num;
-
-    gettimeofday(&dev->register_time, NULL);
     supla_log(LOG_INFO, "[%s] register device...", dev->name);
-    return srpc_ds_async_registerdevice_g(dev->srpc, &reg_dev);
+    gettimeofday(&dev->register_time, NULL);
+    return srpc_ds_async_registerdevice_in_chunks_g(dev->srpc, &reg_dev_hdr, dev, get_channel_data_callback);
 }
 
 static int supla_dev_time_sync(supla_dev_t *dev)
