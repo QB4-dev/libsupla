@@ -225,7 +225,7 @@ static void supla_dev_on_calcfg_request(supla_dev_t *dev, TSD_DeviceCalCfgReques
     result.ChannelNumber = calcfg->ChannelNumber;
     result.Command = calcfg->Command;
 
-    supla_log(LOG_DEBUG, "Received calcfg from server: ch=%d cmd=%d auth=%d datatype=%d datasize=%d",
+    supla_log(LOG_DEBUG, "Received CALCFG from server: ch=%d cmd=%d auth=%d datatype=%d datasize=%d",
               calcfg->ChannelNumber, calcfg->Command, calcfg->SuperUserAuthorized, calcfg->DataType, calcfg->DataSize);
 
     if (calcfg->SuperUserAuthorized != 1) {
@@ -234,8 +234,11 @@ static void supla_dev_on_calcfg_request(supla_dev_t *dev, TSD_DeviceCalCfgReques
         /* no channel specified - config device */
         switch (calcfg->Command) {
         case SUPLA_CALCFG_CMD_ENTER_CFG_MODE:
-            supla_log(LOG_INFO, "CALCFG ENTER CONFIG MODE received");
             supla_dev_set_state(dev, SUPLA_DEV_STATE_CONFIG);
+            break;
+        case SUPLA_CALCFG_CMD_RESTART_DEVICE:
+            if (dev->on_restart_from_server)
+                dev->on_restart_from_server(dev);
             break;
         default:
             result.Result = SUPLA_CALCFG_RESULT_NOT_SUPPORTED;
@@ -665,6 +668,18 @@ int supla_dev_set_server_time_sync_callback(supla_dev_t *dev, on_server_time_syn
 
     lck_lock(dev->lck);
     dev->on_server_time_sync = callback;
+    lck_unlock(dev->lck);
+
+    return SUPLA_RESULT_TRUE;
+}
+
+int supla_dev_set_server_req_restart_callback(supla_dev_t *dev, on_restart_from_server_callback_t callback)
+{
+    assert(NULL != dev);
+
+    lck_lock(dev->lck);
+    dev->flags |= SUPLA_DEVICE_FLAG_CALCFG_RESTART_DEVICE;
+    dev->on_restart_from_server = callback;
     lck_unlock(dev->lck);
 
     return SUPLA_RESULT_TRUE;

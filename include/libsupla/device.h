@@ -118,6 +118,14 @@ typedef int (*supla_device_get_state_handler_t)(supla_dev_t *dev, TDSC_ChannelSt
 typedef int (*on_server_time_sync_callback_t)(supla_dev_t *dev, TSDC_UserLocalTimeResult *lt);
 
 /**
+ * @brief Function called on device restart request received from server
+ *
+ * @param[in] dev SUPLA device instance
+ * @return 0 on success
+ */
+typedef int (*on_restart_from_server_callback_t)(supla_dev_t *dev);
+
+/**
  * @brief Create SUPLA device instance
  *
  * @param[in] dev_name SUPLA device name. Name "SUPLA device" will be set if dev_name is NULL
@@ -260,6 +268,15 @@ int supla_dev_set_common_channel_state_callback(supla_dev_t *dev, supla_device_g
  * @return SUPLA_RESULT_TRUE on success
  */
 int supla_dev_set_server_time_sync_callback(supla_dev_t *dev, on_server_time_sync_callback_t callback);
+
+/**
+ * @brief Set on restart from server callback function
+ *
+ * @param[in] dev SUPLA device instance
+ * @param[in] callback function called on restart request from server
+ * @return SUPLA_RESULT_TRUE on success
+ */
+int supla_dev_set_server_req_restart_callback(supla_dev_t *dev, on_restart_from_server_callback_t callback);
 
 /**
  * @brief Add new channel to SUPLA device

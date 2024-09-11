@@ -33,6 +33,7 @@ struct supla_dev {
     on_change_state_callback_t on_state_change;
     supla_device_get_state_handler_t on_get_channel_state;
     on_server_time_sync_callback_t on_server_time_sync;
+    on_restart_from_server_callback_t on_restart_from_server;
 
     supla_push_notification_config_t push_notification;
 
