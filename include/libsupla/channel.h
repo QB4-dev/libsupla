@@ -207,6 +207,15 @@ int supla_channel_free(supla_channel_t *ch);
 int supla_channel_get_config(supla_channel_t *ch, supla_channel_config_t *config);
 
 /**
+ * @brief  Set SUPLA channel default caption
+ *
+ * @param[in] ch given channel
+ * @param[in] caption channel caption to be set on server registration
+ * @return SUPLA_RESULT_TRUE on success
+ */
+int supla_channel_set_default_caption(supla_channel_t *ch, const char *caption);
+
+/**
  * @brief  Get SUPLA channel data
  *
  * @param[in] ch given channel
