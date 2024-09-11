@@ -9,6 +9,6 @@
 
 #include "arch.h"
 
-int supla_delay_ms(const unsigned int ms);
+uint64_t supla_time_getmonotonictime_milliseconds(void);
 
 #endif /* SRC_PORT_UTIL_H_ */

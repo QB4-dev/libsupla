@@ -9,9 +9,11 @@
 
 #if (LIBSUPLA_ARCH == LIBSUPLA_ARCH_UNIX)
 
-int supla_delay_ms(const unsigned int ms)
+uint64_t supla_time_getmonotonictime_milliseconds(void)
 {
-    return usleep(ms * 1000);
+    struct timespec current_time;
+    clock_gettime(CLOCK_MONOTONIC, &current_time);
+    return (uint64_t)((current_time.tv_sec * 1000) + (current_time.tv_nsec / 1000000));
 }
 
 #ifndef NOSSL

@@ -22,6 +22,11 @@ static int supla_dev_write(void *buf, int count, void *dcd)
     return supla_cloud_send(dev->cloud_link, buf, count);
 }
 
+static inline void supla_dev_iterate_delay_msec(supla_dev_t *dev, uint64_t msec)
+{
+    dev->wait_iterate_msec = msec;
+}
+
 static void supla_dev_set_state(supla_dev_t *dev, supla_dev_state_t new_state)
 {
     if (dev->state == new_state)
@@ -43,7 +48,7 @@ static void supla_connection_on_version_error(TSDC_SuplaVersionError *version_er
               version_error->server_version, SUPLA_PROTO_VERSION);
 }
 
-static void supla_connection_on_register_result(supla_dev_t *dev, TSD_SuplaRegisterDeviceResult *regdev_res)
+static void supla_connection_on_register_result(supla_dev_t *dev, TSD_SuplaRegisterDeviceResult_B *regdev_res)
 {
     switch (regdev_res->result_code) {
     case SUPLA_RESULTCODE_BAD_CREDENTIALS:
@@ -108,7 +113,7 @@ static void supla_connection_on_register_result(supla_dev_t *dev, TSD_SuplaRegis
             timeout.activity_timeout = dev->supla_config.activity_timeout;
             srpc_dcs_async_set_activity_timeout(dev->srpc, &timeout);
         }
-        gettimeofday(&dev->reg_time, NULL);
+        gettimeofday(&dev->register_time, NULL);
         supla_dev_set_state(dev, SUPLA_DEV_STATE_REGISTERED);
     } break;
 
@@ -203,7 +208,7 @@ static void supla_dev_on_get_user_localtime_result(supla_dev_t *dev, TSDC_UserLo
             supla_log(LOG_INFO, "device time sync success: %s", strtok(ctime(&local), "\n"));
             /* update timers */
             dev->init_time.tv_sec = local - dev->uptime;
-            dev->reg_time.tv_sec = local - dev->connection_uptime;
+            dev->register_time.tv_sec = local - dev->connection_uptime;
             dev->last_ping.tv_sec = local;
             dev->last_resp.tv_sec = local;
         } else {
@@ -362,7 +367,7 @@ static void supla_dev_on_remote_call_received(void *_srpc, unsigned int rr_id, u
     case SUPLA_SDC_CALL_PING_SERVER_RESULT:
         break;
     case SUPLA_SD_CALL_REGISTER_DEVICE_RESULT:
-        supla_connection_on_register_result(dev, rd.data.sd_register_device_result);
+        supla_connection_on_register_result(dev, rd.data.sd_register_device_result_b);
         break;
     case SUPLA_SD_CALL_CHANNEL_SET_VALUE:
         supla_dev_on_set_channel_value(dev, rd.data.sd_channel_new_value);
@@ -476,7 +481,6 @@ supla_dev_t *supla_dev_create(const char *dev_name, const char *soft_ver)
 int supla_dev_free(supla_dev_t *dev)
 {
     assert(NULL != dev);
-
     supla_channel_t *ch;
 
     supla_cloud_disconnect(&dev->cloud_link);
@@ -681,9 +685,9 @@ int supla_dev_add_channel(supla_dev_t *dev, supla_channel_t *ch)
     lck_lock(dev->lck);
     lck_lock(ch->lck);
     if (ch->config.type == SUPLA_CHANNELTYPE_ACTIONTRIGGER)
-        supla_log(LOG_DEBUG, "[%s] [%d]add new action trigger", dev->name, channel_count);
+        supla_log(LOG_DEBUG, "[%s] ch[%d]add new action trigger", dev->name, channel_count);
     else
-        supla_log(LOG_DEBUG, "[%s] [%d]add new channel", dev->name, channel_count);
+        supla_log(LOG_DEBUG, "[%s] ch[%d]add new channel", dev->name, channel_count);
 
     ch->number = channel_count;
     STAILQ_INSERT_TAIL(&dev->channels, ch, channels);
@@ -890,7 +894,7 @@ static int supla_dev_register(supla_dev_t *dev)
     }
     reg_dev.channel_count = ch_num;
 
-    gettimeofday(&dev->reg_time, NULL);
+    gettimeofday(&dev->register_time, NULL);
     supla_log(LOG_INFO, "[%s] register device...", dev->name);
     return srpc_ds_async_registerdevice_g(dev->srpc, &reg_dev);
 }
@@ -993,24 +997,34 @@ static void supla_dev_sync_channels_data(supla_dev_t *dev)
 
 static int supla_dev_iterate_tick(supla_dev_t *dev)
 {
+    uint64_t sys_time_msec;
     struct timeval sys_time;
+    struct supla_config *cloud_cfg = &dev->supla_config;
+
+    sys_time_msec = supla_time_getmonotonictime_milliseconds();
     gettimeofday(&sys_time, NULL);
 
     dev->uptime = difftime(sys_time.tv_sec, dev->init_time.tv_sec);
+
+    if (dev->wait_iterate_msec != 0 && sys_time_msec - dev->iterate_time_msec < dev->wait_iterate_msec)
+        return 0;
+
+    dev->wait_iterate_msec = 0;
+    dev->iterate_time_msec = sys_time_msec;
+
     switch (dev->state) {
     case SUPLA_DEV_STATE_CONFIG:
     case SUPLA_DEV_STATE_IDLE:
         return SUPLA_RESULT_TRUE;
 
     case SUPLA_DEV_STATE_INIT:
-        memset(&dev->reg_time, 0, sizeof(dev->reg_time));
+        memset(&dev->register_time, 0, sizeof(dev->register_time));
         memset(&dev->last_ping, 0, sizeof(dev->last_ping));
         memset(&dev->last_resp, 0, sizeof(dev->last_resp));
 
         supla_log(LOG_INFO, "[%s] Connecting to: %s:%d", dev->name, dev->supla_config.server, dev->supla_config.port);
         supla_cloud_disconnect(&dev->cloud_link);
-        if (supla_cloud_connect(&dev->cloud_link, dev->supla_config.server, dev->supla_config.port,
-                                dev->supla_config.ssl)) {
+        if (supla_cloud_connect(&dev->cloud_link, cloud_cfg->server, cloud_cfg->port, cloud_cfg->ssl)) {
             supla_log(LOG_INFO, "[%s] Connected to server", dev->name);
             if (!supla_dev_register(dev)) {
                 supla_log(LOG_ERR, "[%s] supla_dev_register failed!", dev->name);
@@ -1018,13 +1032,13 @@ static int supla_dev_iterate_tick(supla_dev_t *dev)
             }
             supla_dev_set_state(dev, SUPLA_DEV_STATE_CONNECTED);
         } else {
-            supla_delay_ms(5000); //FIXME
+            supla_dev_iterate_delay_msec(dev, 5000);
             return SUPLA_RESULT_FALSE;
         }
         break;
 
     case SUPLA_DEV_STATE_CONNECTED:
-        if (difftime(sys_time.tv_sec, dev->reg_time.tv_sec) > 10) {
+        if (difftime(sys_time.tv_sec, dev->register_time.tv_sec) > 10) {
             supla_log(LOG_ERR, "[%s] Register failed: server not responded!", dev->name);
             supla_dev_set_connection_reset_cause(dev, SUPLA_LASTCONNECTIONRESETCAUSE_SERVER_CONNECTION_LOST);
             supla_dev_set_state(dev, SUPLA_DEV_STATE_INIT);
@@ -1041,7 +1055,7 @@ static int supla_dev_iterate_tick(supla_dev_t *dev)
         break;
 
     case SUPLA_DEV_STATE_ONLINE:
-        dev->connection_uptime = difftime(sys_time.tv_sec, dev->reg_time.tv_sec);
+        dev->connection_uptime = difftime(sys_time.tv_sec, dev->register_time.tv_sec);
         if (supla_connection_ping(dev) == SUPLA_RESULT_FALSE) {
             supla_dev_set_connection_reset_cause(dev, SUPLA_LASTCONNECTIONRESETCAUSE_ACTIVITY_TIMEOUT);
             supla_dev_set_state(dev, SUPLA_DEV_STATE_INIT);
@@ -1057,7 +1071,7 @@ static int supla_dev_iterate_tick(supla_dev_t *dev)
         supla_log(LOG_DEBUG, "srpc_iterate failed");
         supla_dev_set_connection_reset_cause(dev, SUPLA_LASTCONNECTIONRESETCAUSE_SERVER_CONNECTION_LOST);
         supla_dev_set_state(dev, SUPLA_DEV_STATE_INIT);
-        supla_delay_ms(5000); //FIXME
+        supla_dev_iterate_delay_msec(dev, 5000);
         return SUPLA_RESULT_FALSE;
     }
     return 0;

@@ -36,8 +36,11 @@ struct supla_dev {
 
     supla_push_notification_config_t push_notification;
 
+    uint64_t iterate_time_msec;
+    uint64_t wait_iterate_msec;
+
     struct timeval init_time;
-    struct timeval reg_time;
+    struct timeval register_time;
     struct timeval last_ping;
     struct timeval last_resp;
 
