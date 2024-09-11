@@ -86,7 +86,7 @@ shared: includes $(LIB_SHARED)
 static: includes $(LIB_STATIC)
 
 example: shared
-	$(CC) -Wall -O2 -g example/app.c -o example_app -Iinclude -L. -lpthread -lsupla -lssl
+	$(CC) $(CFLAGS) example/app.c -o example_app -Iinclude -L. -lpthread -lsupla -lssl
 
 install: shared static
 	@mkdir -p $(INSTALL_INCLUDE_PATH)
