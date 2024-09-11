@@ -86,11 +86,11 @@ typedef struct {
   TSuplaSocket supla_socket;
 } TSuplaSocketData;
 
-#ifndef NOSSL
-#ifndef _SERVER_EXCLUDED
-
 int ssocket_last_accept_errno = 0;
 struct timeval ssocket_last_accept_error_time = {};
+
+#ifndef NOSSL
+#ifndef _SERVER_EXCLUDED
 
 void ssocket_ssl_error_log(void) {
   char *errstr;
@@ -384,12 +384,16 @@ char ssocket_accept(void *_ssd, unsigned int *ipv4, void **_supla_socket) {
   return result;
 }
 
+
 void ssocket_ssl_new(void *_ssd, void *_supla_socket) {
+#ifndef NOSSL
   TSuplaSocket *supla_socket = (TSuplaSocket *)_supla_socket;
   TSuplaSocketData *ssd = (TSuplaSocketData *)_ssd;
+
   if (supla_socket && supla_socket->sfd != -1 && ssd && ssd->secure == 1) {
     supla_socket->ssl = SSL_new(ssd->ctx);
   }
+#endif /*ifdef NOSSL*/
 }
 
 char ssocket_accept_ssl(void *_ssd, void *_supla_socket) {
@@ -633,9 +637,9 @@ void *ssocket_client_init(const char host[], int port, unsigned char secure) {
   TSuplaSocketData *ssd = malloc(sizeof(TSuplaSocketData));
 
   if (ssd == NULL) return NULL;
-
+#ifndef NOSSL
   supla_log(LOG_INFO, "SSL version: %s", OpenSSL_version(OPENSSL_VERSION));
-
+#endif /*ifndef NOSSL*/
   memset(ssd, 0, sizeof(TSuplaSocketData));
 
   ssd->port = port;
@@ -717,6 +721,7 @@ char ssocket_is_secure(void *_ssd) {
 }
 
 void ssocket_log_ssl_error(void *_supla_socket, int ret) {
+#ifndef NOSSL
   TSuplaSocket *supla_socket = (TSuplaSocket *)_supla_socket;
 
   // SSL_get_error consumes quite a few CPU cycles.
@@ -746,6 +751,7 @@ void ssocket_log_ssl_error(void *_supla_socket, int ret) {
         break;
     }
   }
+#endif /*ifndef NOSSL*/
 }
 
 int ssocket_read(void *_ssd, void *_supla_socket, void *buf, int count) {
