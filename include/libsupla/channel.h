@@ -216,6 +216,15 @@ int supla_channel_get_config(supla_channel_t *ch, supla_channel_config_t *config
 int supla_channel_set_default_caption(supla_channel_t *ch, const char *caption);
 
 /**
+ * @brief  Set SUPLA channel default icon id
+ *
+ * @param[in] ch given channel
+ * @param[in] icon channel default icon id
+ * @return SUPLA_RESULT_TRUE on success
+ */
+int supla_channel_set_default_icon(supla_channel_t *ch, const unsigned char icon);
+
+/**
  * @brief  Get SUPLA channel data
  *
  * @param[in] ch given channel
