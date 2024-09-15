@@ -22,7 +22,7 @@ static int supla_dev_write(void *buf, int count, void *dcd)
     return supla_cloud_send(dev->cloud_link, buf, count);
 }
 
-static inline void supla_dev_iterate_delay_msec(supla_dev_t *dev, uint64_t msec)
+static inline void supla_dev_set_iterate_delay_msec(supla_dev_t *dev, uint64_t msec)
 {
     dev->wait_iterate_msec = msec;
 }
@@ -108,9 +108,9 @@ static void supla_connection_on_register_result(supla_dev_t *dev, TSD_SuplaRegis
         supla_log(LOG_INFO, "[%s] registered: srv ver: %d(min=%d), activity timeout=%ds", dev->name,
                   regdev_res->version, regdev_res->version_min, regdev_res->activity_timeout);
 
-        if (dev->supla_config.activity_timeout != regdev_res->activity_timeout) {
-            supla_log(LOG_DEBUG, "Setting activity timeout to %ds", dev->supla_config.activity_timeout);
-            timeout.activity_timeout = dev->supla_config.activity_timeout;
+        if (dev->activity_timeout != regdev_res->activity_timeout) {
+            supla_log(LOG_DEBUG, "Setting activity timeout to %ds", dev->activity_timeout);
+            timeout.activity_timeout = dev->activity_timeout;
             srpc_dcs_async_set_activity_timeout(dev->srpc, &timeout);
         }
         gettimeofday(&dev->register_time, NULL);
@@ -192,7 +192,7 @@ static void supla_dev_get_channel_state(supla_dev_t *dev, TCSD_ChannelStateReque
 
 static void supla_dev_on_set_activity_timeout_result(supla_dev_t *dev, TSDC_SuplaSetActivityTimeoutResult *res)
 {
-    dev->supla_config.activity_timeout = res->activity_timeout;
+    dev->activity_timeout = res->activity_timeout;
     supla_log(LOG_INFO, "Received activity timeout=%ds allowed[%d-%d]", res->activity_timeout, res->min, res->max);
 }
 
@@ -430,15 +430,15 @@ static int supla_connection_ping(supla_dev_t *dev)
     struct timeval now;
     gettimeofday(&now, NULL);
 
-    if (dev->supla_config.activity_timeout == 0)
+    if (dev->activity_timeout == 0)
         return SUPLA_RESULT_TRUE;
 
-    if ((now.tv_sec - dev->last_ping.tv_sec) >= (dev->supla_config.activity_timeout - 5)) {
+    if ((now.tv_sec - dev->last_ping.tv_sec) >= (dev->activity_timeout - 5)) {
         srpc_dcs_async_ping_server(dev->srpc);
         gettimeofday(&dev->last_ping, NULL);
     }
 
-    if ((now.tv_sec - dev->last_resp.tv_sec) >= (dev->supla_config.activity_timeout + 10)) {
+    if ((now.tv_sec - dev->last_resp.tv_sec) >= (dev->activity_timeout + 10)) {
         supla_log(LOG_ERR, "ping timeout");
         return SUPLA_RESULT_FALSE;
     }
@@ -462,6 +462,7 @@ supla_dev_t *supla_dev_create(const char *dev_name, const char *soft_ver)
         strncpy(dev->soft_ver, "libsupla " LIBSUPLA_VER, SUPLA_SOFTVER_MAXSIZE - 1);
 
     dev->state = SUPLA_DEV_STATE_IDLE;
+    dev->activity_timeout = 120;
 
     TsrpcParams srpc_params;
     srpc_params_init(&srpc_params);
@@ -565,6 +566,29 @@ const char *supla_dev_state_str(supla_dev_state_t state)
     default:
         return "UNKNOWN";
     }
+}
+
+int supla_dev_set_activity_timeout(supla_dev_t *dev, int sec)
+{
+    assert(NULL != dev);
+
+    lck_lock(dev->lck);
+    dev->activity_timeout = sec ? sec : 120; //default timeout
+    lck_unlock(dev->lck);
+
+    return SUPLA_RESULT_TRUE;
+}
+
+int supla_dev_get_activity_timeout(const supla_dev_t *dev, int *sec)
+{
+    assert(NULL != dev);
+    assert(NULL != sec);
+
+    lck_lock(dev->lck);
+    *sec = dev->activity_timeout;
+    lck_unlock(dev->lck);
+
+    return SUPLA_RESULT_TRUE;
 }
 
 int supla_dev_set_flags(supla_dev_t *dev, int flags)
@@ -762,9 +786,6 @@ int supla_dev_set_config(supla_dev_t *dev, const struct supla_config *config)
 
     lck_lock(dev->lck);
     dev->supla_config = *config;
-    /* set defaults if port or activity timeout not provided */
-    dev->supla_config.port = dev->supla_config.port ? dev->supla_config.port : dev->supla_config.ssl ? 2016 : 2015;
-    dev->supla_config.activity_timeout = dev->supla_config.activity_timeout ? dev->supla_config.activity_timeout : 120;
     lck_unlock(dev->lck);
 
     return SUPLA_RESULT_TRUE;
@@ -851,7 +872,7 @@ int supla_dev_send_notification(supla_dev_t *dev, int ctx, const char *title, co
         notification.SoundId = sound_id;
     lck_unlock(dev->lck);
 
-    supla_log(LOG_DEBUG, "dev notify: %s: %s", title, message);
+    supla_log(LOG_DEBUG, "[%s] dev notify: %s: %s", dev->name, title, message);
 
     return srpc_ds_async_send_push_notification(dev->srpc, &notification);
 }
@@ -1011,11 +1032,10 @@ static void supla_dev_sync_channels_data(supla_dev_t *dev)
 
 static int supla_dev_iterate_tick(supla_dev_t *dev)
 {
-    uint64_t sys_time_msec;
     struct timeval sys_time;
     struct supla_config *cloud_cfg = &dev->supla_config;
-
-    sys_time_msec = supla_time_getmonotonictime_milliseconds();
+    int port = cloud_cfg->port ? cloud_cfg->port : cloud_cfg->ssl ? 2016 : 2015;
+    uint64_t sys_time_msec = supla_time_getmonotonictime_milliseconds();
     gettimeofday(&sys_time, NULL);
 
     dev->uptime = difftime(sys_time.tv_sec, dev->init_time.tv_sec);
@@ -1036,17 +1056,19 @@ static int supla_dev_iterate_tick(supla_dev_t *dev)
         memset(&dev->last_ping, 0, sizeof(dev->last_ping));
         memset(&dev->last_resp, 0, sizeof(dev->last_resp));
 
-        supla_log(LOG_INFO, "[%s] Connecting to: %s:%d", dev->name, dev->supla_config.server, dev->supla_config.port);
+        supla_log(LOG_INFO, "[%s] init %s connection with: %s:%d", dev->name, cloud_cfg->ssl ? "encrypted" : "",
+                  cloud_cfg->server, port);
+
         supla_cloud_disconnect(&dev->cloud_link);
-        if (supla_cloud_connect(&dev->cloud_link, cloud_cfg->server, cloud_cfg->port, cloud_cfg->ssl)) {
-            supla_log(LOG_INFO, "[%s] Connected to server", dev->name);
+        if (supla_cloud_connect(&dev->cloud_link, cloud_cfg->server, port, cloud_cfg->ssl)) {
+            supla_log(LOG_INFO, "[%s] connected to server", dev->name);
             if (!supla_dev_register(dev)) {
                 supla_log(LOG_ERR, "[%s] supla_dev_register failed!", dev->name);
                 supla_dev_set_state(dev, SUPLA_DEV_STATE_INIT);
             }
             supla_dev_set_state(dev, SUPLA_DEV_STATE_CONNECTED);
         } else {
-            supla_dev_iterate_delay_msec(dev, 5000);
+            supla_dev_set_iterate_delay_msec(dev, 5000);
             return SUPLA_RESULT_FALSE;
         }
         break;
@@ -1085,7 +1107,7 @@ static int supla_dev_iterate_tick(supla_dev_t *dev)
         supla_log(LOG_DEBUG, "srpc_iterate failed");
         supla_dev_set_connection_reset_cause(dev, SUPLA_LASTCONNECTIONRESETCAUSE_SERVER_CONNECTION_LOST);
         supla_dev_set_state(dev, SUPLA_DEV_STATE_INIT);
-        supla_dev_iterate_delay_msec(dev, 5000);
+        supla_dev_set_iterate_delay_msec(dev, 5000);
         return SUPLA_RESULT_FALSE;
     }
     return 0;

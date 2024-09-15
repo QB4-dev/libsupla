@@ -25,6 +25,7 @@ struct supla_dev {
 
     supla_dev_state_t state;
     struct supla_config supla_config;
+    int activity_timeout;
 
     supla_link_t cloud_link;
     void *srpc;
