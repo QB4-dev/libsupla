@@ -189,6 +189,24 @@ int supla_dev_get_state(const supla_dev_t *dev, supla_dev_state_t *state);
 const char *supla_dev_state_str(supla_dev_state_t state);
 
 /**
+ * @brief Set SUPLA device activity timeout
+ *
+ * @param[in] dev SUPLA device instance
+ * @param[in] sec SUPLA device activity timeout in seconds
+ * @return SUPLA_RESULT_TRUE on success
+ */
+int supla_dev_set_activity_timeout(supla_dev_t *dev, int sec);
+
+/**
+ * @brief Get SUPLA device activity timeout
+ *
+ * @param[in] dev SUPLA device instance
+ * @param[out] sec SUPLA device activity timeout in seconds
+ * @return SUPLA_RESULT_TRUE on success
+ */
+int supla_dev_get_activity_timeout(const supla_dev_t *dev, int *sec);
+
+/**
  * @brief Set SUPLA device flags
  *
  * @param[in] dev SUPLA device instance
