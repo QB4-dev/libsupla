@@ -731,6 +731,9 @@ int supla_dev_add_channel(supla_dev_t *dev, supla_channel_t *ch)
 
     lck_unlock(ch->lck);
     lck_unlock(dev->lck);
+
+    if (ch->config.on_channel_init)
+        ch->config.on_channel_init(ch);
     return SUPLA_RESULT_TRUE;
 }
 
