@@ -984,7 +984,7 @@ static int supla_dev_get_channel_configurations(supla_dev_t *dev)
         if (ch->config.on_config_recv) {
             req.ChannelNumber = supla_channel_get_assigned_number(ch);
             req.ConfigType = SUPLA_CONFIG_TYPE_DEFAULT;
-            srpc_ds_async_get_channel_config_request(dev->srpc, &req);
+            //srpc_ds_async_get_channel_config_request(dev->srpc, &req);
         }
         if (ch->config.on_sched_recv) {
             req.ChannelNumber = supla_channel_get_assigned_number(ch);
