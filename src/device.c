@@ -105,7 +105,7 @@ static void supla_connection_on_register_result(supla_dev_t *dev, TSD_SuplaRegis
 
     case SUPLA_RESULTCODE_TRUE: {
         TDCS_SuplaSetActivityTimeout timeout;
-        supla_log(LOG_INFO, "[%s] registered: srv ver: %d(min=%d), activity timeout=%ds", dev->name,
+        supla_log(LOG_INFO, "dev %s registered: srv ver: %d(min=%d), activity timeout=%ds", dev->name,
                   regdev_res->version, regdev_res->version_min, regdev_res->activity_timeout);
 
         if (dev->activity_timeout != regdev_res->activity_timeout) {
@@ -715,16 +715,16 @@ int supla_dev_add_channel(supla_dev_t *dev, supla_channel_t *ch)
 
     channel_count = supla_dev_get_channel_count(dev);
     if (channel_count + 1 >= SUPLA_CHANNELMAXCOUNT) {
-        supla_log(LOG_ERR, "[%s] cannot add channel: channel max count reached", dev->name);
+        supla_log(LOG_ERR, "dev %s cannot add channel: channel max count reached", dev->name);
         return SUPLA_RESULT_FALSE;
     }
 
     lck_lock(dev->lck);
     lck_lock(ch->lck);
     if (ch->config.type == SUPLA_CHANNELTYPE_ACTIONTRIGGER)
-        supla_log(LOG_DEBUG, "[%s] ch[%d]add new action trigger", dev->name, channel_count);
+        supla_log(LOG_DEBUG, "dev %s ch[%d]add new action trigger", dev->name, channel_count);
     else
-        supla_log(LOG_DEBUG, "[%s] ch[%d]add new channel", dev->name, channel_count);
+        supla_log(LOG_DEBUG, "dev %s ch[%d]add new channel", dev->name, channel_count);
 
     ch->number = channel_count;
     STAILQ_INSERT_TAIL(&dev->channels, ch, channels);
