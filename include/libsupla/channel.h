@@ -179,7 +179,7 @@ typedef struct supla_channel_config {
     const char *default_caption;                        //default caption set by device
     supla_push_notification_config_t push_notification; //PUSH notification config
 
-    supla_channel_init_handler_t on_channel_init;   //on add to device
+    supla_channel_init_handler_t on_channel_init;      //on add to device
     supla_channel_set_value_handler_t on_set_value;    //on set value request callback function
     supla_channel_get_state_handler_t on_get_state;    //on get state request callback function
     supla_channel_set_calcfg_handler_t on_calcfg_req;  //on calcfg request callback function
@@ -266,6 +266,15 @@ int supla_channel_get_assigned_number(supla_channel_t *ch);
  * @return SUPLA_RESULT_TRUE on success
  */
 int supla_channel_get_active_function(supla_channel_t *ch, int *function);
+
+/**
+ * @brief  Set active channel function(may be changed by server)
+ *
+ * @param[in] ch given channel
+ * @param[in] function supported functions //SUPLA_CHANNELFNC_*
+ * @return SUPLA_RESULT_TRUE on success
+ */
+int supla_channel_set_active_function(supla_channel_t *ch, int function);
 
 int supla_channel_set_value(supla_channel_t *ch, void *value, size_t len);
 int supla_channel_set_binary_value(supla_channel_t *ch, uint8_t value);

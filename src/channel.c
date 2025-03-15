@@ -421,7 +421,6 @@ int supla_channel_set_active_function(supla_channel_t *ch, int function)
         rc = SUPLA_RESULT_TRUE;
     }
     lck_unlock(ch->lck);
-
     return rc;
 }
 
