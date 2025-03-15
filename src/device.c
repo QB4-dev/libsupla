@@ -875,7 +875,7 @@ int supla_dev_send_notification(supla_dev_t *dev, int ctx, const char *title, co
         notification.SoundId = sound_id;
     lck_unlock(dev->lck);
 
-    supla_log(LOG_DEBUG, "[%s] dev notify: %s: %s", dev->name, title, message);
+    supla_log(LOG_DEBUG, "dev %s notify: %s: %s", dev->name, title, message);
 
     return srpc_ds_async_send_push_notification(dev->srpc, &notification);
 }
@@ -932,7 +932,7 @@ static int supla_dev_register(supla_dev_t *dev)
     {
         reg_dev_hdr.channel_count++;
     }
-    supla_log(LOG_INFO, "[%s] register device...", dev->name);
+    supla_log(LOG_INFO, "dev %s register...", dev->name);
     gettimeofday(&dev->register_time, NULL);
     return srpc_ds_async_registerdevice_in_chunks_g(dev->srpc, &reg_dev_hdr, dev, get_channel_data_callback);
 }
@@ -1007,7 +1007,7 @@ static int supla_dev_register_push_notifications(supla_dev_t *dev)
     if (dev->push_notification.enabled) {
         pn_reg.Context = -1; //Device context
         pn_reg.ServerManagedFields = dev->push_notification.srv_managed_fields;
-        supla_log(LOG_DEBUG, "[%s] register dev PUSH notification", dev->name);
+        supla_log(LOG_DEBUG, "dev %s register device PUSH notification", dev->name);
         srpc_ds_async_register_push_notification(dev->srpc, &pn_reg);
     }
     STAILQ_FOREACH(ch, &dev->channels, channels)
@@ -1016,7 +1016,7 @@ static int supla_dev_register_push_notifications(supla_dev_t *dev)
             memset(&pn_reg, 0, sizeof(TDS_RegisterPushNotification));
             pn_reg.Context = supla_channel_get_assigned_number(ch);
             pn_reg.ServerManagedFields = ch->config.push_notification.srv_managed_fields;
-            supla_log(LOG_DEBUG, "[%s] register ch[%d] PUSH notification", dev->name, pn_reg.Context);
+            supla_log(LOG_DEBUG, "dev %s register ch[%d] PUSH notification", dev->name, pn_reg.Context);
             srpc_ds_async_register_push_notification(dev->srpc, &pn_reg);
         }
     }
@@ -1059,14 +1059,14 @@ static int supla_dev_iterate_tick(supla_dev_t *dev)
         memset(&dev->last_ping, 0, sizeof(dev->last_ping));
         memset(&dev->last_resp, 0, sizeof(dev->last_resp));
 
-        supla_log(LOG_INFO, "[%s] init %s connection with: %s:%d", dev->name, cloud_cfg->ssl ? "encrypted" : "",
+        supla_log(LOG_INFO, "dev %s init %s connection with: %s:%d", dev->name, cloud_cfg->ssl ? "encrypted" : "",
                   cloud_cfg->server, port);
 
         supla_cloud_disconnect(&dev->cloud_link);
         if (supla_cloud_connect(&dev->cloud_link, cloud_cfg->server, port, cloud_cfg->ssl)) {
-            supla_log(LOG_INFO, "[%s] connected to server", dev->name);
+            supla_log(LOG_INFO, "dev %s connected to server", dev->name);
             if (!supla_dev_register(dev)) {
-                supla_log(LOG_ERR, "[%s] supla_dev_register failed!", dev->name);
+                supla_log(LOG_ERR, "dev %s supla_dev_register failed!", dev->name);
                 supla_dev_set_state(dev, SUPLA_DEV_STATE_INIT);
             }
             supla_dev_set_state(dev, SUPLA_DEV_STATE_CONNECTED);
@@ -1078,7 +1078,7 @@ static int supla_dev_iterate_tick(supla_dev_t *dev)
 
     case SUPLA_DEV_STATE_CONNECTED:
         if (difftime(sys_time.tv_sec, dev->register_time.tv_sec) > 10) {
-            supla_log(LOG_ERR, "[%s] Register failed: server not responded!", dev->name);
+            supla_log(LOG_ERR, "dev %s register failed: server not responded!", dev->name);
             supla_dev_set_connection_reset_cause(dev, SUPLA_LASTCONNECTIONRESETCAUSE_SERVER_CONNECTION_LOST);
             supla_dev_set_state(dev, SUPLA_DEV_STATE_INIT);
         }
@@ -1107,7 +1107,7 @@ static int supla_dev_iterate_tick(supla_dev_t *dev)
     }
 
     if (srpc_iterate(dev->srpc) == SUPLA_RESULT_FALSE) {
-        supla_log(LOG_DEBUG, "srpc_iterate failed");
+        supla_log(LOG_ERR, "srpc_iterate failed");
         supla_dev_set_connection_reset_cause(dev, SUPLA_LASTCONNECTIONRESETCAUSE_SERVER_CONNECTION_LOST);
         supla_dev_set_state(dev, SUPLA_DEV_STATE_INIT);
         supla_dev_set_iterate_delay_msec(dev, 5000);
