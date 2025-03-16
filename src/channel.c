@@ -27,6 +27,10 @@ supla_channel_t *supla_channel_create(const supla_channel_config_t *config)
     if (ch->config.on_get_state)
         ch->config.flags |= SUPLA_CHANNEL_FLAG_CHANNELSTATE;
 
+    /* set SUPLA_CHANNEL_FLAG_CALCFG_RECALIBRATE if on_calcfg_req callback is set */
+    if (ch->config.on_calcfg_req)
+        ch->config.flags |= SUPLA_CHANNEL_FLAG_CALCFG_RECALIBRATE;
+
     /* set SUPLA_CHANNEL_FLAG_RUNTIME_CHANNEL_CONFIG_UPDATE if on_config_set callback is set */
     if (ch->config.on_config_set)
         ch->config.flags |= SUPLA_CHANNEL_FLAG_RUNTIME_CHANNEL_CONFIG_UPDATE;
