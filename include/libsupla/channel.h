@@ -284,7 +284,7 @@ int supla_channel_set_relay_value(supla_channel_t *ch, TRelayChannel_Value *rela
 int supla_channel_set_rgbw_value(supla_channel_t *ch, TRGBW_Value *rgbw);
 int supla_channel_set_impulse_counter_value(supla_channel_t *ch, TDS_ImpulseCounter_Value *ic);
 int supla_channel_set_roller_shutter_value(supla_channel_t *ch, TDSC_RollerShutterValue *rs);
-int supla_channel_set_faceblind_value(supla_channel_t *ch, TDSC_FacadeBlindValue *fb);
+int supla_channel_set_facadeblind_value(supla_channel_t *ch, TDSC_FacadeBlindValue *fb);
 int supla_channel_set_electricity_meter_value(supla_channel_t *ch, TElectricityMeter_Value *em);
 int supla_channel_set_thermostat_value(supla_channel_t *ch, TThermostat_Value *th);
 

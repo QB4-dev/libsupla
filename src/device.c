@@ -275,12 +275,21 @@ static void supla_dev_on_srv_set_channel_config(supla_dev_t *dev, TSD_ChannelCon
 {
     supla_log(LOG_DEBUG, "Received set channel config from server: ch[%d] type=%d func=%d size=%d",
               ch_cfg->ChannelNumber, ch_cfg->ConfigType, ch_cfg->Func, ch_cfg->ConfigSize);
+    TSDS_SetChannelConfig req = {};
 
     supla_channel_t *ch = supla_dev_get_channel_by_num(dev, ch_cfg->ChannelNumber);
     if (ch) {
         supla_channel_set_active_function(ch, ch_cfg->Func);
         if (ch->config.on_config_recv)
             ch->config.on_config_recv(ch, ch_cfg);
+
+        /* If config from server is empty try send from device */
+        if (ch_cfg->ConfigSize == 0 && ch->config.on_config_set) {
+            req.ConfigType = ch_cfg->ConfigType;
+            req.ChannelNumber = ch_cfg->ChannelNumber;
+            ch->config.on_config_set(ch, &req);
+            srpc_ds_async_set_channel_config_request(dev->srpc, &req);
+        }
     } else {
         supla_log(LOG_ERR, "channel[%d] not found", ch_cfg->ChannelNumber);
     }
@@ -291,21 +300,11 @@ static void supla_dev_on_get_channel_config_result(supla_dev_t *dev, TSD_Channel
     supla_log(LOG_DEBUG, "Received get channel config result from server: ch[%d] type=%d func=%d size=%d",
               ch_cfg->ChannelNumber, ch_cfg->ConfigType, ch_cfg->Func, ch_cfg->ConfigSize);
 
-    TSDS_SetChannelConfig req = {};
-
     supla_channel_t *ch = supla_dev_get_channel_by_num(dev, ch_cfg->ChannelNumber);
     if (ch) {
         supla_channel_set_active_function(ch, ch_cfg->Func);
         if (ch->config.on_config_recv)
             ch->config.on_config_recv(ch, ch_cfg);
-
-        /* If this config is empty */
-        if (ch_cfg->ConfigSize == 0 && ch->config.on_config_set) {
-            req.ConfigType = ch_cfg->ConfigType;
-            req.ChannelNumber = ch_cfg->ChannelNumber;
-            ch->config.on_config_set(ch, &req);
-            srpc_ds_async_set_channel_config_request(dev->srpc, &req);
-        }
     } else {
         supla_log(LOG_ERR, "channel[%d] not found", ch_cfg->ChannelNumber);
     }
