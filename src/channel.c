@@ -136,26 +136,6 @@ int supla_channel_get_config(supla_channel_t *ch, supla_channel_config_t *config
     return SUPLA_RESULT_TRUE;
 }
 
-int supla_channel_set_default_caption(supla_channel_t *ch, const char *caption)
-{
-    assert(NULL != ch);
-
-    lck_lock(ch->lck);
-    ch->config.default_caption = caption;
-    lck_unlock(ch->lck);
-    return SUPLA_RESULT_TRUE;
-}
-
-int supla_channel_set_default_icon(supla_channel_t *ch, const unsigned char icon)
-{
-    assert(NULL != ch);
-
-    lck_lock(ch->lck);
-    ch->config.default_icon = icon;
-    lck_unlock(ch->lck);
-    return SUPLA_RESULT_TRUE;
-}
-
 void *supla_channel_get_data(supla_channel_t *ch)
 {
     assert(NULL != ch);

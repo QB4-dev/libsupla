@@ -64,14 +64,6 @@ extern "C" {
 typedef struct supla_channel supla_channel_t;
 
 /**
- * @brief Function called when channel is added to device
- *
- * @param[in] ch called channel
- * @return SUPLA_RESULT_TRUE on success or error number if failed
- */
-typedef int (*supla_channel_init_handler_t)(supla_channel_t *ch);
-
-/**
  * @brief Function called on receive new value from server
  * Example function:
  * @code{c}
@@ -179,7 +171,6 @@ typedef struct supla_channel_config {
     const char *default_caption;                        //default caption set by device
     supla_push_notification_config_t push_notification; //PUSH notification config
 
-    supla_channel_init_handler_t on_channel_init;   //on add to device
     supla_channel_set_value_handler_t on_set_value;    //on set value request callback function
     supla_channel_get_state_handler_t on_get_state;    //on get state request callback function
     supla_channel_set_calcfg_handler_t on_calcfg_req;  //on calcfg request callback function
@@ -214,24 +205,6 @@ int supla_channel_free(supla_channel_t *ch);
  * @return SUPLA_RESULT_TRUE on success
  */
 int supla_channel_get_config(supla_channel_t *ch, supla_channel_config_t *config);
-
-/**
- * @brief  Set SUPLA channel default caption
- *
- * @param[in] ch given channel
- * @param[in] caption channel caption to be set on server registration
- * @return SUPLA_RESULT_TRUE on success
- */
-int supla_channel_set_default_caption(supla_channel_t *ch, const char *caption);
-
-/**
- * @brief  Set SUPLA channel default icon id
- *
- * @param[in] ch given channel
- * @param[in] icon channel default icon id
- * @return SUPLA_RESULT_TRUE on success
- */
-int supla_channel_set_default_icon(supla_channel_t *ch, const unsigned char icon);
 
 /**
  * @brief  Get SUPLA channel data
