@@ -64,6 +64,14 @@ extern "C" {
 typedef struct supla_channel supla_channel_t;
 
 /**
+ * @brief Function called when channel is added to device
+ *
+ * @param[in] ch called channel
+ * @return SUPLA_RESULT_TRUE on success or error number if failed
+ */
+typedef int (*supla_channel_init_handler_t)(supla_channel_t *ch);
+
+/**
  * @brief Function called on receive new value from server
  * Example function:
  * @code{c}
@@ -171,6 +179,7 @@ typedef struct supla_channel_config {
     const char *default_caption;                        //default caption set by device
     supla_push_notification_config_t push_notification; //PUSH notification config
 
+    supla_channel_init_handler_t on_channel_init;      //on add to device
     supla_channel_set_value_handler_t on_set_value;    //on set value request callback function
     supla_channel_get_state_handler_t on_get_state;    //on get state request callback function
     supla_channel_set_calcfg_handler_t on_calcfg_req;  //on calcfg request callback function
@@ -207,6 +216,24 @@ int supla_channel_free(supla_channel_t *ch);
 int supla_channel_get_config(supla_channel_t *ch, supla_channel_config_t *config);
 
 /**
+ * @brief  Set SUPLA channel default caption
+ *
+ * @param[in] ch given channel
+ * @param[in] caption channel caption to be set on server registration
+ * @return SUPLA_RESULT_TRUE on success
+ */
+int supla_channel_set_default_caption(supla_channel_t *ch, const char *caption);
+
+/**
+ * @brief  Set SUPLA channel default icon id
+ *
+ * @param[in] ch given channel
+ * @param[in] icon channel default icon id
+ * @return SUPLA_RESULT_TRUE on success
+ */
+int supla_channel_set_default_icon(supla_channel_t *ch, const unsigned char icon);
+
+/**
  * @brief  Get SUPLA channel data
  *
  * @param[in] ch given channel
@@ -222,6 +249,14 @@ void *supla_channel_get_data(supla_channel_t *ch);
  * @return data pointer
  */
 void *supla_channel_set_data(supla_channel_t *ch, void *data);
+
+/**
+ * @brief  Get SUPLA channel parent device pointer
+ *
+ * @param[in] ch given channel
+ * @return supla_dev pointer on success or NULL
+ */
+void *supla_channel_get_assigned_device(supla_channel_t *ch);
 
 /**
  * @brief  Get assigned channel number when added to device
@@ -240,6 +275,15 @@ int supla_channel_get_assigned_number(supla_channel_t *ch);
  */
 int supla_channel_get_active_function(supla_channel_t *ch, int *function);
 
+/**
+ * @brief  Set active channel function(may be changed by server)
+ *
+ * @param[in] ch given channel
+ * @param[in] function supported functions //SUPLA_CHANNELFNC_*
+ * @return SUPLA_RESULT_TRUE on success
+ */
+int supla_channel_set_active_function(supla_channel_t *ch, int function);
+
 int supla_channel_set_value(supla_channel_t *ch, void *value, size_t len);
 int supla_channel_set_binary_value(supla_channel_t *ch, uint8_t value);
 int supla_channel_set_double_value(supla_channel_t *ch, double value);
@@ -248,7 +292,7 @@ int supla_channel_set_relay_value(supla_channel_t *ch, TRelayChannel_Value *rela
 int supla_channel_set_rgbw_value(supla_channel_t *ch, TRGBW_Value *rgbw);
 int supla_channel_set_impulse_counter_value(supla_channel_t *ch, TDS_ImpulseCounter_Value *ic);
 int supla_channel_set_roller_shutter_value(supla_channel_t *ch, TDSC_RollerShutterValue *rs);
-int supla_channel_set_faceblind_value(supla_channel_t *ch, TDSC_FacadeBlindValue *fb);
+int supla_channel_set_facadeblind_value(supla_channel_t *ch, TDSC_FacadeBlindValue *fb);
 int supla_channel_set_electricity_meter_value(supla_channel_t *ch, TElectricityMeter_Value *em);
 int supla_channel_set_thermostat_value(supla_channel_t *ch, TThermostat_Value *th);
 

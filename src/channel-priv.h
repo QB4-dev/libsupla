@@ -22,6 +22,7 @@ extern "C" {
 struct supla_channel {
     void *lck;
     supla_channel_config_t config;
+    void *dev;           //pointer to device
     int number;          //filled by device
     int active_function; //may be changed by server
 
@@ -36,15 +37,6 @@ struct supla_channel {
  * @brief  convert channel to Supla proto channel definition
  */
 TDS_SuplaDeviceChannel_E supla_channel_to_register_struct(supla_channel_t *ch);
-
-/**
- * @brief  Set active channel function(may be changed by server)
- *
- * @param[in] ch given channel
- * @param[in] function supported functions //SUPLA_CHANNELFNC_*
- * @return SUPLA_RESULT_TRUE on success
- */
-int supla_channel_set_active_function(supla_channel_t *ch, int function);
 
 /**
  * @brief  sync channel data with server

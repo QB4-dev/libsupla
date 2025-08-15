@@ -27,6 +27,14 @@ supla_channel_t *supla_channel_create(const supla_channel_config_t *config)
     if (ch->config.on_get_state)
         ch->config.flags |= SUPLA_CHANNEL_FLAG_CHANNELSTATE;
 
+    /* set SUPLA_CHANNEL_FLAG_CALCFG_RECALIBRATE if on_calcfg_req callback is set */
+    if (ch->config.on_calcfg_req)
+        ch->config.flags |= SUPLA_CHANNEL_FLAG_CALCFG_RECALIBRATE;
+
+    /* set SUPLA_CHANNEL_FLAG_RUNTIME_CHANNEL_CONFIG_UPDATE if on_config_set callback is set */
+    if (ch->config.on_config_set)
+        ch->config.flags |= SUPLA_CHANNEL_FLAG_RUNTIME_CHANNEL_CONFIG_UPDATE;
+
     /* set SUPLA_CHANNEL_FLAG_RUNTIME_CHANNEL_CONFIG_UPDATE if on_config_recv callback is set */
     if (ch->config.on_config_recv)
         ch->config.flags |= SUPLA_CHANNEL_FLAG_RUNTIME_CHANNEL_CONFIG_UPDATE;
@@ -136,6 +144,26 @@ int supla_channel_get_config(supla_channel_t *ch, supla_channel_config_t *config
     return SUPLA_RESULT_TRUE;
 }
 
+int supla_channel_set_default_caption(supla_channel_t *ch, const char *caption)
+{
+    assert(NULL != ch);
+
+    lck_lock(ch->lck);
+    ch->config.default_caption = caption;
+    lck_unlock(ch->lck);
+    return SUPLA_RESULT_TRUE;
+}
+
+int supla_channel_set_default_icon(supla_channel_t *ch, const unsigned char icon)
+{
+    assert(NULL != ch);
+
+    lck_lock(ch->lck);
+    ch->config.default_icon = icon;
+    lck_unlock(ch->lck);
+    return SUPLA_RESULT_TRUE;
+}
+
 void *supla_channel_get_data(supla_channel_t *ch)
 {
     assert(NULL != ch);
@@ -155,6 +183,18 @@ void *supla_channel_set_data(supla_channel_t *ch, void *data)
     ch->config.data = data;
     lck_unlock(ch->lck);
     return data;
+}
+
+void *supla_channel_get_assigned_device(supla_channel_t *ch)
+{
+    void *device;
+    if (ch == NULL)
+        return NULL;
+
+    lck_lock(ch->lck);
+    device = ch->dev;
+    lck_unlock(ch->lck);
+    return device;
 }
 
 int supla_channel_get_assigned_number(supla_channel_t *ch)
@@ -249,7 +289,7 @@ int supla_channel_set_roller_shutter_value(supla_channel_t *ch, TDSC_RollerShutt
     return supla_channel_set_value(ch, rs, sizeof(TDSC_RollerShutterValue));
 }
 
-int supla_channel_set_faceblind_value(supla_channel_t *ch, TDSC_FacadeBlindValue *fb)
+int supla_channel_set_facadeblind_value(supla_channel_t *ch, TDSC_FacadeBlindValue *fb)
 {
     assert(NULL != ch);
 
@@ -401,7 +441,6 @@ int supla_channel_set_active_function(supla_channel_t *ch, int function)
         rc = SUPLA_RESULT_TRUE;
     }
     lck_unlock(ch->lck);
-
     return rc;
 }
 
