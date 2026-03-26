@@ -5,3 +5,5 @@ include/libsupla/supla-common
 *.a
 *.so*
 
+supla_auth
+supla_guid

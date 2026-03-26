@@ -12,6 +12,7 @@
 #include "version.h"
 #include "config.h"
 
+#define USE_DEPRECATED_EMEV_V2
 #include "supla-common/proto.h"
 #include "supla-common/cfg.h"
 #include "supla-common/log.h"
