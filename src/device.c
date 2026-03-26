@@ -275,21 +275,12 @@ static void supla_dev_on_srv_set_channel_config(supla_dev_t *dev, TSD_ChannelCon
 {
     supla_log(LOG_DEBUG, "Received set channel config from server: ch[%d] type=%d func=%d size=%d",
               ch_cfg->ChannelNumber, ch_cfg->ConfigType, ch_cfg->Func, ch_cfg->ConfigSize);
-    TSDS_SetChannelConfig req = {};
 
     supla_channel_t *ch = supla_dev_get_channel_by_num(dev, ch_cfg->ChannelNumber);
     if (ch) {
         supla_channel_set_active_function(ch, ch_cfg->Func);
         if (ch->config.on_config_recv)
             ch->config.on_config_recv(ch, ch_cfg);
-
-        /* If config from server is empty try send from device */
-        if (ch_cfg->ConfigSize == 0 && ch->config.on_config_set) {
-            req.ConfigType = ch_cfg->ConfigType;
-            req.ChannelNumber = ch_cfg->ChannelNumber;
-            ch->config.on_config_set(ch, &req);
-            srpc_ds_async_set_channel_config_request(dev->srpc, &req);
-        }
     } else {
         supla_log(LOG_ERR, "channel[%d] not found", ch_cfg->ChannelNumber);
     }
@@ -299,15 +290,6 @@ static void supla_dev_on_get_channel_config_result(supla_dev_t *dev, TSD_Channel
 {
     supla_log(LOG_DEBUG, "Received get channel config result from server: ch[%d] type=%d func=%d size=%d",
               ch_cfg->ChannelNumber, ch_cfg->ConfigType, ch_cfg->Func, ch_cfg->ConfigSize);
-
-    supla_channel_t *ch = supla_dev_get_channel_by_num(dev, ch_cfg->ChannelNumber);
-    if (ch) {
-        supla_channel_set_active_function(ch, ch_cfg->Func);
-        if (ch->config.on_config_recv)
-            ch->config.on_config_recv(ch, ch_cfg);
-    } else {
-        supla_log(LOG_ERR, "channel[%d] not found", ch_cfg->ChannelNumber);
-    }
 }
 
 static void supla_dev_on_set_channel_config_result(supla_dev_t *dev, TSDS_SetChannelConfigResult *result)
@@ -934,7 +916,7 @@ static int supla_dev_register(supla_dev_t *dev)
     }
     supla_log(LOG_INFO, "dev %s register...", dev->name);
     gettimeofday(&dev->register_time, NULL);
-    return srpc_ds_async_registerdevice_in_chunks_g(dev->srpc, &reg_dev_hdr, dev, get_channel_data_callback);
+    return srpc_ds_async_registerdevice_in_chunks_g(dev->srpc, &reg_dev_hdr, get_channel_data_callback, dev);
 }
 
 static int supla_dev_time_sync(supla_dev_t *dev)
@@ -944,13 +926,6 @@ static int supla_dev_time_sync(supla_dev_t *dev)
     else
         return SUPLA_RESULT_FALSE;
 }
-
-//static int supla_dev_set_device_config(supla_dev_t *dev)
-//{
-//    TSDS_SetDeviceConfig devcfg = {};
-//    //TODO
-//    return srpc_ds_async_set_device_config_request(dev->srpc, &devcfg);
-//}
 
 static int supla_dev_set_channel_captions(supla_dev_t *dev)
 {
@@ -974,10 +949,11 @@ static int supla_dev_get_channel_functions(supla_dev_t *dev)
     return srpc_ds_async_get_channel_functions(dev->srpc);
 }
 
-static int supla_dev_get_channel_configurations(supla_dev_t *dev)
+static int supla_dev_sync_channel_configurations(supla_dev_t *dev)
 {
     supla_channel_t *ch;
     TDS_GetChannelConfigRequest req = {};
+    TSDS_SetChannelConfig set_req = {};
 
     STAILQ_FOREACH(ch, &dev->channels, channels)
     {
@@ -994,6 +970,12 @@ static int supla_dev_get_channel_configurations(supla_dev_t *dev)
 
             req.ConfigType = SUPLA_CONFIG_TYPE_ALT_WEEKLY_SCHEDULE;
             srpc_ds_async_get_channel_config_request(dev->srpc, &req);
+        }
+        /* if channel has config set callback */
+        if (ch->config.on_config_set) {
+            req.ChannelNumber = supla_channel_get_assigned_number(ch);
+            ch->config.on_config_set(ch, &set_req);
+            srpc_ds_async_set_channel_config_request(dev->srpc, &set_req);
         }
     }
     return SUPLA_RESULT_TRUE;
@@ -1088,7 +1070,7 @@ static int supla_dev_iterate_tick(supla_dev_t *dev)
         supla_dev_time_sync(dev);
         supla_dev_set_channel_captions(dev);
         supla_dev_get_channel_functions(dev);
-        supla_dev_get_channel_configurations(dev);
+        supla_dev_sync_channel_configurations(dev);
         supla_dev_register_push_notifications(dev);
         supla_dev_set_state(dev, SUPLA_DEV_STATE_ONLINE);
         break;
